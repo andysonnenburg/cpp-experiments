@@ -4,7 +4,8 @@ using namespace std;
 
 template <typename T>
 inline
-unionfind::ptr<T>::ptr(T const& value): link_(make_shared(value)) {}
+unionfind::ptr<T>::ptr(T const& value):
+  link_(make_shared<impl::repr<T>>(value)) {}
 
 template <typename T>
 inline
