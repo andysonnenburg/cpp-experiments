@@ -6,6 +6,7 @@
 
 namespace unionfind {
 	namespace impl {
+    using namespace std;
 		template <typename T>
 		class repr;
 
@@ -13,8 +14,8 @@ namespace unionfind {
 		class impl {
 		public:
 			virtual ~impl() {}
-			virtual std::tuple<std::shared_ptr<impl<T> >, repr<T>&> find() = 0;
-			virtual std::tuple<std::shared_ptr<impl<T> const> const, repr<T> const&> find() const = 0;
+			virtual tuple<shared_ptr<impl<T> >, repr<T>&> find() = 0;
+			virtual tuple<shared_ptr<impl<T> const>, repr<T> const&> find() const = 0;
 		};
 
 		template <typename T>
@@ -24,17 +25,18 @@ namespace unionfind {
 			T value;
 			explicit repr(T const&);
 			~repr();
-			std::tuple<std::shared_ptr<impl<T> >, repr<T>&> find();
-			std::tuple<std::shared_ptr<impl<T> const> const, repr<T> const&> find() const;
+			tuple<shared_ptr<impl<T> >, repr<T>&> find();
+			tuple<shared_ptr<impl<T> const>, repr<T> const&> find() const;
 		};
 		
 		template <typename T>
 		class link: public impl<T> {
-			std::shared_ptr<impl<T> > link_;
+			shared_ptr<impl<T> > link_;
 		public:
+      link(shared_ptr<impl<T> >);
 			~link();
-			std::tuple<std::shared_ptr<impl<T> >, repr<T>&> find();
-			std::tuple<std::shared_ptr<impl<T> const> const, repr<T> const&> find() const;
+      tuple<shared_ptr<impl<T> >, repr<T>&> find();
+			tuple<shared_ptr<impl<T> const>, repr<T> const&> find() const;
 		};
 	}
 
