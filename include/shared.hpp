@@ -30,7 +30,7 @@ namespace shared {
 
 	template <typename T, typename Count = unsigned int>
 	class cyclic_ptr {
-		counted<T, Count>* counted_;
+		detail::counted<T, Count>* counted_;
 		T* ptr_;
 
 	public:
@@ -41,6 +41,7 @@ namespace shared {
 	class acyclic_ptr {
 		detail::counted<T, Count>* counted_;
 		T* ptr_;
+
 	public:
 		template <typename... Args>
 		explicit acyclic_ptr(Args&&... args):
@@ -66,18 +67,7 @@ namespace shared {
 		}
 
 		acyclic_ptr& operator=(acyclic_ptr const& rhs) {
-			if (counted_ == rhs.counted_) {
-				return *this;
-			}
-			if (counted_ && counted_->release() == 0) {
-				delete counted_;
-			}
-			counted_ = rhs.counted_;
-			ptr_ = rhs.ptr_;
-			if (counted_) {
-				counted_->acquire();
-			}
-			return *this;
+			return operator=<T>(rhs);
 		}
 
 		template <typename U>
@@ -97,16 +87,7 @@ namespace shared {
 		}
 
 		acyclic_ptr& operator=(acyclic_ptr&& rhs) {
-			if (counted_ == rhs.counted_) {
-				return *this;
-			}
-			if (counted_ && counted_->release() == 0) {
-				delete counted_;
-			}
-			counted_ = rhs.counted_;
-			ptr_ = rhs.ptr_;
-			rhs.counted_ = 0;
-			return *this;
+			return operator=<T>(std::forward<T>(rhs));
 		}
 
 		template <typename U>
