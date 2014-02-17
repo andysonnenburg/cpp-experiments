@@ -5,11 +5,11 @@
 
 namespace shared {
 	namespace cyclic {
-    template <typename T>
-    class children_traits {
-    public:
-      typedef typename T::children_type children_type;
-    };
+		template <typename T>
+		class children_traits {
+		public:
+			typedef typename T::children_type children_type;
+		};
 
 		template <typename T>
 		typename children_traits<T>::children_type children(T const&);
