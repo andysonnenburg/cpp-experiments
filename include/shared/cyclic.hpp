@@ -246,7 +246,7 @@ namespace shared {
 namespace std {
 	template <typename T>
 	inline
-	void swap(shared::cyclic::ptr<T>& lhs, shared::acyclic::ptr<T>& rhs) noexcept {
+	void swap(shared::cyclic::ptr<T>& lhs, shared::cyclic::ptr<T>& rhs) noexcept {
 		lhs.swap(rhs);
 	}
 }
