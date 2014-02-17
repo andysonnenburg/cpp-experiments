@@ -178,13 +178,11 @@ namespace shared {
 			}
 
 			friend
-			inline
 			bool operator==(ptr const& lhs, ptr const& rhs) noexcept {
 				return lhs.counted_ == rhs.counted_;
 			}
 
 			friend
-			inline
 			bool operator!=(ptr const& lhs, ptr const& rhs) noexcept {
 				return lhs.counted_ != rhs.counted_;
 			}
@@ -222,9 +220,9 @@ namespace shared {
 			}
 
 			template <typename U> friend class detail::counted;
+
 			template <typename U, typename... Args>
 			friend
-			inline
 			ptr<U> make(Args... args) {
 				return ptr<U>(make_tag(), std::forward<Args>(args)...);
 			}

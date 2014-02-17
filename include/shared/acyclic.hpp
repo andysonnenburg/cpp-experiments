@@ -108,13 +108,11 @@ namespace shared {
 			}
 
 			friend
-			inline
 			bool operator==(ptr const& lhs, ptr const& rhs) noexcept {
 				return lhs.counted_ == rhs.counted_;
 			}
 		
 			friend
-			inline
 			bool operator!=(ptr const& lhs, ptr const& rhs) noexcept {
 				return lhs.counted_ != rhs.counted_;
 			}
