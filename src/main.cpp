@@ -1,32 +1,31 @@
 #include <array>
-#include <iostream>
 #include "shared.hpp"
 
 using namespace shared::cyclic;
 
 struct link {
-	ptr<link> value;
+  typedef link const& children_type;
+  ptr<link> value;
+  ptr<link> const* begin() const {
+    return &value;
+  }
+	ptr<link> const* end() const {
+    return &value + 1;
+  }
 };
 
 namespace shared {
 	namespace cyclic {
-		namespace parent {
-			template <>
-			class traits<link> {
-			public:
-				typedef std::array<ptr<link>, 1> children_type;
-			};
-		}
-
 		template <>
-		parent::traits<link>::children_type children<link>(link const& link) {
-			return { { link.value } };
+		children_traits<link>::children_type children<link>(link const& link) {
+			return link;
 		}
-	}
+  }
 }
 
 int main() {
-	ptr<link> x;
+	ptr<link> x = make<link>();
+  *x = link();
 	x->value = x;
 	return 0;
 }

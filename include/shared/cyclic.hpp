@@ -1,19 +1,18 @@
 #ifndef SHARED_CYCLIC_HPP
 #define SHARED_CYCLIC_HPP
 
+#include <array>
+
 namespace shared {
 	namespace cyclic {
-
-		namespace parent {
-			template <typename T>
-			class traits {
-			public:
-				typedef typename T::children_type children_type;
-			};
-		}
+    template <typename T>
+    class children_traits {
+    public:
+      typedef typename T::children_type children_type;
+    };
 
 		template <typename T>
-		typename parent::traits<T>::children_type children(T const&);
+		typename children_traits<T>::children_type children(T const&);
 
 		namespace detail {
 			enum class color {
@@ -75,7 +74,7 @@ namespace shared {
 						auto t = ptr.counted_;
 						if (t != nullptr) {
 							++t->count_;
-							if (t->color_ == color::black) {
+							if (t->color_ != color::black) {
 								t->scan_black();
 							}
 						}
@@ -84,6 +83,7 @@ namespace shared {
 
 				void collect_white() {
 					if (color_ == color::white) {
+            color_ = color::black;
 						for (auto& ptr: children(value_)) {
 							ptr.collect_white();
 						}
@@ -98,12 +98,7 @@ namespace shared {
 			T* ptr_;
 
 		public:
-			template <typename... Args>
-			explicit ptr(Args&&... args):
-				counted_(new detail::counted<T>(std::forward<Args>(args)...)),
-				ptr_(&counted_->value_) {}
-
-			constexpr ptr() noexcept: counted_(nullptr), ptr_() {}
+      ptr(): counted_(nullptr), ptr_() {}
 
 			ptr& operator=(ptr const& rhs) {
 				return operator=<T>(rhs);
@@ -136,62 +131,55 @@ namespace shared {
 			}
 
 		private:
-			void decrement() {
+      struct make_tag {};
+
+			template <typename... Args>
+			explicit ptr(make_tag, Args&&... args):
+				counted_(new detail::counted<T>(std::forward<Args>(args)...)),
+				ptr_(&counted_->value_) {}
+
+			void decrement() const {
 				auto counted = counted_;
 				if (counted != nullptr) {
 					if (--counted->count_ == 0) {
-						release();
+						delete counted_;
 					} else {
 						counted_->collect_cycles();
 					}
 				}
 			}
 
-			void release() {
-				delete counted_;
-			}
-
-			void scan() {
+			void scan() const {
 				if (counted_ != nullptr) {
 					counted_->scan();
 				}
 			}
 
-			void collect_white() {
+			void collect_white() const {
 				if (counted_ != nullptr) {
-					auto counted = counted_;
-					counted_ = nullptr;
-					counted->collect_white();
-					delete counted;
+					counted_->collect_white();
+					delete counted_;
 				}
 			}
 
 			template <typename U> friend class detail::counted;
+      template <typename U, typename... Args>
+      friend
+      inline
+      ptr<U> make(Args... args) {
+        return ptr<U>(make_tag(), std::forward<Args>(args)...);
+      }
 		};
 
-		namespace parent {
-			template <typename T>
-			class empty {
-			public:
-				ptr<T>* begin() {
-					return nullptr;
-				}
-
-				ptr<T>* end() {
-					return nullptr;
-				}
-			};
-
-			template <>
-			class traits<int> {
-			public:
-				typedef empty<int> children_type;
-			};
-		}
+    template <>
+    class children_traits<int> {
+    public:
+      typedef std::array<int, 0> children_type;
+    };
 
 		template <>
-		parent::traits<int>::children_type children<int>(int const&) {
-			return parent::empty<int>();
+		children_traits<int>::children_type children<int>(int const&) {
+			return std::array<int, 0>();
 		}
 	}
 }
