@@ -27,14 +27,14 @@ namespace shared {
 			class counted {
 				T value_;
 				color color_;
-				count count_;
+				count use_count_;
 
 			public:
 				template <typename... Args>
 				counted(Args&&... args):
 					value_(std::forward<Args>(args)...),
 					color_(color::black),
-					count_(1) {}
+					use_count_(1) {}
 
 				T& value() {
 					return value_;
@@ -45,11 +45,11 @@ namespace shared {
 				}
 
 				count& use_count() {
-					return count_;
+					return use_count_;
 				}
 
 				count const& use_count() const {
-					return count_;
+					return use_count_;
 				}
 
 				void collect_cycles() {
@@ -73,7 +73,7 @@ namespace shared {
 
 				void scan() {
 					if (color_ == color::gray) {
-						if (count_ > 0) {
+						if (use_count() > 0) {
 							scan_black();
 						} else {
 							color_ = color::white;
