@@ -83,7 +83,7 @@ namespace shared {
 
 				void collect_white() {
 					if (color_ == color::white) {
-            color_ = color::black;
+						color_ = color::black;
 						for (auto& ptr: children(value_)) {
 							ptr.collect_white();
 						}
