@@ -25,16 +25,32 @@ namespace shared {
 
 			template <typename T>
 			class counted {
-			public:
 				T value_;
 				color color_;
 				count count_;
 
+			public:
 				template <typename... Args>
 				counted(Args&&... args):
 					value_(std::forward<Args>(args)...),
 					color_(color::black),
 					count_(1) {}
+
+				T& value() {
+					return value_;
+				}
+
+				T const& value() const {
+					return value_;
+				}
+
+				count& use_count() {
+					return count_;
+				}
+
+				count const& use_count() const {
+					return count_;
+				}
 
 				void collect_cycles() {
 					mark_gray();
@@ -48,7 +64,7 @@ namespace shared {
 						for (auto& ptr: children(value_)) {
 							auto t = ptr.counted_;
 							if (t != nullptr) {
-								--t->count_;
+								--t->use_count();
 								t->mark_gray();
 							}
 						}
@@ -73,7 +89,7 @@ namespace shared {
 					for (auto& ptr: children(value_)) {
 						auto t = ptr.counted_;
 						if (t != nullptr) {
-							++t->count_;
+							++t->use_count();
 							if (t->color_ != color::black) {
 								t->scan_black();
 							}
@@ -105,7 +121,7 @@ namespace shared {
 				counted_(rhs.counted_),
 				ptr_(rhs.ptr_) {
 				if (counted_ != nullptr) {
-					++counted_->count_;
+					++counted_->use_count();
 				}
 			}
 
@@ -129,7 +145,7 @@ namespace shared {
 				counted_ = rhs.counted_;
 				ptr_ = rhs.ptr_;
 				if (counted_ != nullptr) {
-					++counted_->count_;
+					++counted_->use_count();
 				}
 				return *this;
 			}
@@ -179,12 +195,12 @@ namespace shared {
 			template <typename... Args>
 			ptr(make_tag, Args&&... args):
 				counted_(new detail::counted<T>(std::forward<Args>(args)...)),
-				ptr_(&counted_->value_) {}
+				ptr_(&counted_->value()) {}
 
 			void decrement() const {
 				auto counted = counted_;
 				if (counted != nullptr) {
-					if (--counted->count_ == 0) {
+					if (--counted->use_count() == 0) {
 						delete counted;
 					} else {
 						counted->collect_cycles();
