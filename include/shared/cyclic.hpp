@@ -103,6 +103,8 @@ namespace shared {
 				counted_(new detail::counted<T>(std::forward<Args>(args)...)),
 				ptr_(&counted_->value_) {}
 
+			constexpr ptr() noexcept: counted_(nullptr), ptr_() {}
+
 			ptr& operator=(ptr const& rhs) {
 				return operator=<T>(rhs);
 			}
@@ -125,8 +127,12 @@ namespace shared {
 				decrement();
 			}
 
-			T& operator*() const {
+			typename std::add_lvalue_reference<T>::type operator*() const noexcept {
 				return *ptr_;
+			}
+
+			T* operator->() const noexcept {
+				return ptr_;
 			}
 
 		private:
