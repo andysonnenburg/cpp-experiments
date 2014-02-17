@@ -42,8 +42,6 @@ namespace shared {
 				counted_(new detail::counted<T, Count>(std::forward<Args>(args)...)),
 				ptr_(&counted_->value()) {}
 
-			ptr(ptr const& rhs): ptr<T>(rhs) {}
-
 			template <typename U>
 			ptr(ptr<U, Count> const& rhs):
 				counted_(rhs.counted_),
@@ -52,8 +50,6 @@ namespace shared {
 					counted_->acquire();
 				}
 			}
-
-			ptr(ptr&& rhs) noexcept: ptr<T>(std::move(rhs)) {}
 
 			template <typename U>
 			ptr(ptr<U, Count>&& rhs) noexcept:

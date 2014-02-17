@@ -98,7 +98,23 @@ namespace shared {
 			T* ptr_;
 
 		public:
-			ptr(): counted_(nullptr), ptr_() {}
+			constexpr ptr() noexcept: counted_(nullptr), ptr_() {}
+
+			template <typename U>
+			ptr(ptr<U> const& rhs):
+				counted_(rhs.counted_),
+				ptr_(rhs.ptr_) {
+				if (counted_ != nullptr) {
+					++counted_->count_;
+				}
+			}
+
+			template <typename U>
+			ptr(ptr<U>&& rhs) noexcept:
+				counted_(rhs.counted_),
+				ptr_(rhs.ptr_) {
+				rhs.counted_ = nullptr;
+			}
 
 			ptr& operator=(ptr const& rhs) {
 				return operator=<T>(rhs);
@@ -118,6 +134,16 @@ namespace shared {
 				return *this;
 			}
 
+			ptr& operator=(ptr&& rhs) noexcept {
+				return operator=<T>(std::move(rhs));
+			}
+
+			template <typename U>
+			ptr& operator=(ptr<U>&& rhs) noexcept {
+				ptr(std::move(rhs)).swap(*this);
+				return *this;
+			}
+
 			~ptr() {
 				decrement();
 			}
@@ -130,11 +156,28 @@ namespace shared {
 				return ptr_;
 			}
 
+			void swap(ptr& rhs) noexcept {
+				std::swap(counted_, rhs.counted_);
+				std::swap(ptr_, rhs.ptr_);
+			}
+
+			friend
+			inline
+			bool operator==(ptr const& lhs, ptr const& rhs) noexcept {
+				return lhs.counted_ == rhs.counted_;
+			}
+
+			friend
+			inline
+			bool operator!=(ptr const& lhs, ptr const& rhs) noexcept {
+				return lhs.counted_ != rhs.counted_;
+			}
+
 		private:
 			struct make_tag {};
 
 			template <typename... Args>
-			explicit ptr(make_tag, Args&&... args):
+			ptr(make_tag, Args&&... args):
 				counted_(new detail::counted<T>(std::forward<Args>(args)...)),
 				ptr_(&counted_->value_) {}
 
@@ -142,9 +185,9 @@ namespace shared {
 				auto counted = counted_;
 				if (counted != nullptr) {
 					if (--counted->count_ == 0) {
-						delete counted_;
+						delete counted;
 					} else {
-						counted_->collect_cycles();
+						counted->collect_cycles();
 					}
 				}
 			}
@@ -181,6 +224,14 @@ namespace shared {
 		children_traits<int>::children_type children<int>(int const&) {
 			return std::array<int, 0>();
 		}
+	}
+}
+
+namespace std {
+	template <typename T>
+	inline
+	void swap(shared::cyclic::ptr<T>& lhs, shared::acyclic::ptr<T>& rhs) noexcept {
+		lhs.swap(rhs);
 	}
 }
 
