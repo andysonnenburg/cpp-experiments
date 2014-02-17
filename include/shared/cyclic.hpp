@@ -98,7 +98,7 @@ namespace shared {
 			T* ptr_;
 
 		public:
-      ptr(): counted_(nullptr), ptr_() {}
+			ptr(): counted_(nullptr), ptr_() {}
 
 			ptr& operator=(ptr const& rhs) {
 				return operator=<T>(rhs);
@@ -131,7 +131,7 @@ namespace shared {
 			}
 
 		private:
-      struct make_tag {};
+			struct make_tag {};
 
 			template <typename... Args>
 			explicit ptr(make_tag, Args&&... args):
@@ -163,19 +163,19 @@ namespace shared {
 			}
 
 			template <typename U> friend class detail::counted;
-      template <typename U, typename... Args>
-      friend
-      inline
-      ptr<U> make(Args... args) {
-        return ptr<U>(make_tag(), std::forward<Args>(args)...);
-      }
+			template <typename U, typename... Args>
+			friend
+			inline
+			ptr<U> make(Args... args) {
+				return ptr<U>(make_tag(), std::forward<Args>(args)...);
+			}
 		};
 
-    template <>
-    class children_traits<int> {
-    public:
-      typedef std::array<int, 0> children_type;
-    };
+		template <>
+		class children_traits<int> {
+		public:
+			typedef std::array<int, 0> children_type;
+		};
 
 		template <>
 		children_traits<int>::children_type children<int>(int const&) {
