@@ -6,8 +6,7 @@
 namespace shared {
 	namespace cyclic {
 		template <typename T>
-		class children_traits {
-		public:
+		struct children_traits {
 			typedef typename T::children_type children_type;
 		};
 
@@ -15,26 +14,26 @@ namespace shared {
 		typename children_traits<T>::children_type children(T const&);
 
 		namespace detail {
+			typedef unsigned int count;
+
 			enum class color {
 				black,
 				gray,
 				white
 			};
 
-			typedef unsigned int count;
-
 			template <typename T>
 			class counted {
 				T value_;
-				color color_;
 				count use_count_;
+				color color_;
 
 			public:
 				template <typename... Args>
 				counted(Args&&... args):
 					value_(std::forward<Args>(args)...),
-					color_(color::black),
-					use_count_(1) {}
+					use_count_(1),
+					color_(color::black) {}
 
 				T& value() {
 					return value_;
@@ -177,16 +176,6 @@ namespace shared {
 				std::swap(ptr_, rhs.ptr_);
 			}
 
-			friend
-			bool operator==(ptr const& lhs, ptr const& rhs) noexcept {
-				return lhs.counted_ == rhs.counted_;
-			}
-
-			friend
-			bool operator!=(ptr const& lhs, ptr const& rhs) noexcept {
-				return lhs.counted_ != rhs.counted_;
-			}
-
 		private:
 			struct make_tag {};
 
@@ -219,13 +208,23 @@ namespace shared {
 				}
 			}
 
-			template <typename U> friend class detail::counted;
+			friend
+			bool operator==(ptr const& lhs, ptr const& rhs) noexcept {
+				return lhs.counted_ == rhs.counted_;
+			}
+
+			friend
+			bool operator!=(ptr const& lhs, ptr const& rhs) noexcept {
+				return lhs.counted_ != rhs.counted_;
+			}
 
 			template <typename U, typename... Args>
 			friend
 			ptr<U> make(Args... args) {
 				return ptr<U>(make_tag(), std::forward<Args>(args)...);
 			}
+
+			template <typename U> friend class detail::counted;
 		};
 
 		template <>

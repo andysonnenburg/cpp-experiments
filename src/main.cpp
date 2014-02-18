@@ -25,7 +25,6 @@ namespace shared {
 
 int main() {
 	ptr<link> x = make<link>();
-	*x = link();
 	x->value = x;
 	return 0;
 }

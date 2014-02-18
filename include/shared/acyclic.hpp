@@ -9,24 +9,28 @@ namespace shared {
 			template <typename T, typename Count>
 			class counted {
 				T value_;
-				Count count_;
+				Count use_count_;
 
 			public:
 				template <typename... Args>
 				counted(Args&&... args):
 					value_(std::forward<Args>(args)...),
-					count_(1) {}
+					use_count_(1) {}
 
 				T& value() {
 					return value_;
 				}
 
-				void acquire() {
-					++count_;
+				T const& value() const {
+					return value_;
 				}
-			
-				Count& release() {
-					return --count_;
+
+				Count& use_count() {
+					return use_count_;
+				}
+
+				Count const& use_count() const {
+					return use_count_;
 				}
 			};
 		}
@@ -37,17 +41,14 @@ namespace shared {
 			T* ptr_;
 
 		public:
-			template <typename... Args>
-			explicit ptr(Args&&... args):
-				counted_(new detail::counted<T, Count>(std::forward<Args>(args)...)),
-				ptr_(&counted_->value()) {}
+			constexpr ptr() noexcept: counted_(nullptr), ptr_() {}
 
 			template <typename U>
 			ptr(ptr<U, Count> const& rhs):
 				counted_(rhs.counted_),
 				ptr_(rhs.ptr) {
 				if (counted_ != nullptr) {
-					counted_->acquire();
+					++counted_->use_count();
 				}
 			}
 
@@ -67,13 +68,13 @@ namespace shared {
 				if (counted_ == rhs.counted_) {
 					return *this;
 				}
-				if (counted_ != nullptr && counted_->release() == 0) {
+				if (counted_ != nullptr && --counted_->use_count() == 0) {
 					delete counted_;
 				}
 				counted_ = rhs.counted_;
 				ptr_ = rhs.ptr_;
 				if (counted_ != nullptr) {
-					counted_->acquire();
+					++counted_->use_count();
 				}
 				return *this;
 			}
@@ -89,7 +90,7 @@ namespace shared {
 			}
 
 			~ptr() {
-				if (counted_ != nullptr && counted_->release() == 0) {
+				if (counted_ != nullptr && --counted_->use_count() == 0) {
 					delete counted_;
 				}
 			}
@@ -107,6 +108,14 @@ namespace shared {
 				std::swap(ptr_, rhs.ptr_);
 			}
 
+		private:
+			struct make_tag {};
+
+			template <typename... Args>
+			explicit ptr(make_tag, Args&&... args):
+				counted_(new detail::counted<T, Count>(std::forward<Args>(args)...)),
+				ptr_(&counted_->value()) {}
+
 			friend
 			bool operator==(ptr const& lhs, ptr const& rhs) noexcept {
 				return lhs.counted_ == rhs.counted_;
@@ -115,6 +124,12 @@ namespace shared {
 			friend
 			bool operator!=(ptr const& lhs, ptr const& rhs) noexcept {
 				return lhs.counted_ != rhs.counted_;
+			}
+
+			template <typename U, typename... Args>
+			friend
+			ptr<U> make(Args... args) {
+				return ptr<U>(make_tag(), std::forward<Args>(args)...);
 			}
 		};
 	}
