@@ -102,6 +102,7 @@ namespace shared {
 						for (auto& ptr: children(value_)) {
 							ptr.collect_white();
 						}
+						delete this;
 					}
 				}
 			};
@@ -204,7 +205,6 @@ namespace shared {
 			void collect_white() const {
 				if (counted_ != nullptr) {
 					counted_->collect_white();
-					delete counted_;
 				}
 			}
 
