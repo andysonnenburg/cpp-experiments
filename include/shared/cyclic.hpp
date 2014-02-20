@@ -17,6 +17,7 @@ namespace shared {
 			typedef unsigned int count;
 
 			enum class color {
+				green,
 				black,
 				gray,
 				white
@@ -33,7 +34,7 @@ namespace shared {
 				counted(Args&&... args):
 					value_ { std::forward<Args>(args)... },
 					use_count_ { 1 },
-					color_ { color::black } {}
+					color_ { color::green } {}
 
 				T& value() {
 					return value_;
@@ -43,12 +44,25 @@ namespace shared {
 					return value_;
 				}
 
-				count& use_count() {
-					return use_count_;
+				void increment() {
+					++use_count_;
 				}
 
-				count const& use_count() const {
-					return use_count_;
+				void decrement() {
+					if (--use_count_ == 0) {
+						delete this;
+					} else if (color_ != color::green) {
+						collect_cycles();
+					}
+				}
+
+				void mark_cyclic() {
+					if (color_ == color::green) {
+						color_ = color::black;
+						for (auto& ptr: children(value_)) {
+							ptr.mark_cyclic();
+						}
+					}
 				}
 
 				void collect_cycles() {
@@ -63,7 +77,7 @@ namespace shared {
 						for (auto& ptr: children(value_)) {
 							auto t = ptr.counted_;
 							if (t != nullptr) {
-								--t->use_count();
+								--t->use_count_;
 								t->mark_gray();
 							}
 						}
@@ -72,7 +86,7 @@ namespace shared {
 
 				void scan() {
 					if (color_ == color::gray) {
-						if (use_count() > 0) {
+						if (use_count_ > 0) {
 							scan_black();
 						} else {
 							color_ = color::white;
@@ -88,7 +102,7 @@ namespace shared {
 					for (auto& ptr: children(value_)) {
 						auto t = ptr.counted_;
 						if (t != nullptr) {
-							++t->use_count();
+							++t->use_count_;
 							if (t->color_ != color::black) {
 								t->scan_black();
 							}
@@ -121,7 +135,7 @@ namespace shared {
 				counted_ { rhs.counted_ },
 				ptr_ { rhs.ptr_ } {
 				if (counted_ != nullptr) {
-					++counted_->use_count();
+					counted_->increment();
 				}
 			}
 
@@ -145,7 +159,8 @@ namespace shared {
 				counted_ = rhs.counted_;
 				ptr_ = rhs.ptr_;
 				if (counted_ != nullptr) {
-					++counted_->use_count();
+					counted_->increment();
+					counted_->mark_cyclic();
 				}
 				return *this;
 			}
@@ -186,13 +201,14 @@ namespace shared {
 				ptr_ { &counted_->value() } {}
 
 			void decrement() const {
-				auto counted = counted_;
-				if (counted != nullptr) {
-					if (--counted->use_count() == 0) {
-						delete counted;
-					} else {
-						counted->collect_cycles();
-					}
+				if (counted_ != nullptr) {
+					counted_->decrement();
+				}
+			}
+
+			void mark_cyclic() const {
+				if (counted_ != nullptr) {
+					counted_->mark_cyclic();
 				}
 			}
 
