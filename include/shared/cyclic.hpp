@@ -1,22 +1,121 @@
 #ifndef SHARED_CYCLIC_HPP
 #define SHARED_CYCLIC_HPP
 
-#include <type_traits>
+#include <utility>
 
 namespace shared {
 	namespace cyclic {
-		template <typename T>
-		struct children_traits {
-			typedef typename T::children_type children_type;
-		};
+		namespace result_of {
+			template <typename T>
+			struct begin {
+				typedef decltype(std::declval<T>().begin()) type;
+			};
+		}
+
+		namespace call {
+			template <typename T>
+			struct begin {
+				static typename result_of::begin<T>::type call(T const& seq) {
+					return seq.begin();
+				}
+			};
+		}
 
 		template <typename T>
-		typename children_traits<T>::children_type children(T const&);
+		typename result_of::begin<T>::type begin(T const& seq) {
+			return call::begin<T>::call(seq);
+		}
+
+		namespace result_of {
+			template <typename T>
+			struct end {
+				typedef decltype(std::declval<T>().end()) type;
+			};
+		}
+
+		namespace call {
+			template <typename T>
+			struct end {
+				static typename result_of::end<T>::type call(T const& seq) {
+					return seq.end();
+				}
+			};
+		}
 
 		template <typename T>
-		struct is_cyclic: std::true_type {};
+		typename result_of::end<T>::type end(T const& seq) {
+			return seq.end();
+		}
+
+		namespace result_of {
+			template <typename Iterator>
+			struct next {
+				typedef decltype(std::declval<Iterator>().next()) type;
+			};
+		}
+
+		namespace call {
+			template <typename Iterator>
+			struct next {
+				static typename result_of::next<Iterator>::type call(Iterator const& i) {
+					return i.next();
+				}
+			};
+		}
+
+		template <typename Iterator>
+		typename result_of::next<Iterator>::type next(Iterator const& i) {
+			return call::next<Iterator>::call(i);
+		}
+
+		namespace result_of {
+			template <typename Iterator>
+			struct deref {
+				typedef decltype(*std::declval<Iterator>()) type;
+			};
+		}
+
+		namespace call {
+			template <typename Iterator>
+			struct deref {
+				static typename result_of::deref<Iterator>::type call(Iterator const& i) {
+					return *i;
+				}
+			};
+		}
+
+		template <typename Iterator>
+		typename result_of::deref<Iterator>::type deref(Iterator const& i) {
+			return call::deref<Iterator>::call(i);
+		}
+
+		namespace result_of {
+			template <typename T, typename U>
+			struct not_equal {
+				typedef decltype(std::declval<T>() != std::declval<U>()) type;
+			};
+		}
+
+		namespace call {
+			template <typename T, typename U>
+			struct not_equal {
+				static typename result_of::not_equal<T, U>::type call(T const& t, U const& u) {
+					return t != u;
+				}
+			};
+		}
+
+		template <typename T, typename U>
+		typename result_of::not_equal<T, U>::type not_equal(T const& t, U const& u) {
+			return call::not_equal<T, U>::call(t, u);
+		}
+
+		template <typename T>
+		struct is_acyclic: std::false_type {};
 
 		namespace detail {
+			using namespace shared::cyclic;
+
 			typedef unsigned int count;
 
 			enum class color {
@@ -26,11 +125,11 @@ namespace shared {
 				white
 			};
 
-			template <typename T, bool Cyclic = is_cyclic<T>::value>
+			template <typename T, bool Acyclic = is_acyclic<T>::value>
 			class counted;
 
 			template <typename T>
-			class counted<T, false> {
+			class counted<T, true> {
 				T value_;
 				count use_count_;
 
@@ -65,7 +164,7 @@ namespace shared {
 			};
 
 			template <typename T>
-			class counted<T, true> {
+			class counted<T, false> {
 				T value_;
 				count use_count_;
 				color color_;
@@ -100,9 +199,17 @@ namespace shared {
 				void mark_cyclic() {
 					if (color_ == color::green) {
 						color_ = color::black;
-						for (auto& ptr: children(value_)) {
-							ptr.mark_cyclic();
-						}
+						mark_cyclic(begin(value_), end(value_));
+					}
+				}
+
+			private:
+				template <typename First, typename Last>
+				static
+				void mark_cyclic(First const& first, Last const& last) {
+					if (not_equal(first, last)) {
+						deref(first).mark_cyclic();
+						mark_cyclic(next(first), last);
 					}
 				}
 
@@ -115,49 +222,81 @@ namespace shared {
 				void mark_gray() {
 					if (color_ != color::gray) {
 						color_ = color::gray;
-						for (auto& ptr: children(value_)) {
-							auto t = ptr.counted_;
-							if (t != nullptr) {
-								--t->use_count_;
-								t->mark_gray();
-							}
-						}
+						mark_gray(begin(value_), end(value_));
 					}
 				}
 
+				template <typename First, typename Last>
+				static
+				void mark_gray(First const& first, Last const& last) {
+					if (not_equal(first, last)) {
+						auto t = deref(first).counted_;
+						if (t != nullptr) {
+							--t->use_count_;
+							t->mark_gray();
+						}
+						mark_gray(next(first), last);
+					}
+				}
+
+			public:
 				void scan() {
 					if (color_ == color::gray) {
 						if (use_count_ > 0) {
 							scan_black();
 						} else {
 							color_ = color::white;
-							for (auto& ptr: children(value_)) {
-								ptr.scan();
-							}
+							scan(begin(value_), end(value_));
 						}
+					}
+				}
+
+			private:
+				template <typename First, typename Last>
+				static
+				void scan(First const& first, Last const& last) {
+					if (not_equal(first, last)) {
+						deref(first).scan();
+						scan(next(first), last);
 					}
 				}
 
 				void scan_black() {
 					color_ = color::black;
-					for (auto& ptr: children(value_)) {
-						auto t = ptr.counted_;
+					scan_black(begin(value_), end(value_));
+				}
+
+				template <typename First, typename Last>
+				static
+				void scan_black(First const& first, Last const& last) {
+					if (not_equal(first, last)) {
+						auto t = deref(first).counted_;
 						if (t != nullptr) {
 							++t->use_count_;
 							if (t->color_ != color::black) {
 								t->scan_black();
 							}
 						}
+						scan_black(next(first), last);
 					}
 				}
 
+			public:
 				void collect_white() {
 					if (color_ == color::white) {
 						color_ = color::black;
-						for (auto& ptr: children(value_)) {
-							ptr.collect_white();
-						}
+						collect_white(begin(value_), end(value_));
 						delete this;
+					}
+				}
+
+			private:
+				template <typename First, typename Last>
+				static
+				void collect_white(First const& first, Last const& last) {
+					if (not_equal(first, last)) {
+						deref(first).collect_white();
+						collect_white(next(first), last);
 					}
 				}
 			};
@@ -283,7 +422,7 @@ namespace shared {
 			friend
 			ptr<U> make(Args... args);
 
-			template <typename U> friend class detail::counted;
+			template <typename U, bool Acyclic> friend class detail::counted;
 		};
 
 		template <typename U, typename... Args>
