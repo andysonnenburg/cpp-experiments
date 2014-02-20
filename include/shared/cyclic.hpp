@@ -1,7 +1,7 @@
 #ifndef SHARED_CYCLIC_HPP
 #define SHARED_CYCLIC_HPP
 
-#include <array>
+#include <type_traits>
 
 namespace shared {
 	namespace cyclic {
@@ -13,6 +13,9 @@ namespace shared {
 		template <typename T>
 		typename children_traits<T>::children_type children(T const&);
 
+		template <typename T>
+		struct is_cyclic: std::true_type {};
+
 		namespace detail {
 			typedef unsigned int count;
 
@@ -23,8 +26,46 @@ namespace shared {
 				white
 			};
 
+			template <typename T, bool Cyclic = is_cyclic<T>::value>
+			class counted;
+
 			template <typename T>
-			class counted {
+			class counted<T, false> {
+				T value_;
+				count use_count_;
+
+			public:
+				template <typename... Args>
+				counted(Args&&... args):
+					value_ { std::forward<Args>(args)... },
+					use_count_ { 1 } {}
+
+				T& value() {
+					return value_;
+				}
+
+				T const& value() const {
+					return value_;
+				}
+
+				void increment() {
+					++use_count_;
+				}
+
+				void decrement() {
+					if (--use_count_ == 0) {
+						delete this;
+					}
+				}
+
+				void mark_cyclic() {}
+				void scan() {}
+				void scan_black() {}
+				void collect_white() {}
+			};
+
+			template <typename T>
+			class counted<T, true> {
 				T value_;
 				count use_count_;
 				color color_;
@@ -134,16 +175,14 @@ namespace shared {
 			ptr(ptr<U> const& rhs):
 				counted_ { rhs.counted_ },
 				ptr_ { rhs.ptr_ } {
-				if (counted_ != nullptr) {
-					counted_->increment();
-				}
+					increment();
 			}
 
 			template <typename U>
 			ptr(ptr<U>&& rhs) noexcept:
 				counted_ { rhs.counted_ },
 				ptr_ { rhs.ptr_ } {
-				rhs.counted_ = nullptr;
+					rhs.counted_ = nullptr;
 			}
 
 			ptr& operator=(ptr const& rhs) {
@@ -200,6 +239,12 @@ namespace shared {
 				counted_ { new detail::counted<T> { std::forward<Args>(args)... } },
 				ptr_ { &counted_->value() } {}
 
+			void increment() const {
+				if (counted_ != nullptr) {
+					counted_->increment();
+				}
+			}
+
 			void decrement() const {
 				if (counted_ != nullptr) {
 					counted_->decrement();
@@ -245,17 +290,6 @@ namespace shared {
 		inline
 		ptr<U> make(Args... args) {
 			return ptr<U>(typename ptr<U>::make_tag {}, std::forward<Args>(args)...);
-		}
-
-		template <>
-		class children_traits<int> {
-		public:
-			typedef std::array<int, 0> children_type;
-		};
-
-		template <>
-		children_traits<int>::children_type children<int>(int const&) {
-			return std::array<int, 0>();
 		}
 	}
 }
