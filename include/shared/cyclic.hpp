@@ -31,9 +31,9 @@ namespace shared {
 			public:
 				template <typename... Args>
 				counted(Args&&... args):
-					value_(std::forward<Args>(args)...),
-					use_count_(1),
-					color_(color::black) {}
+					value_ { std::forward<Args>(args)... },
+					use_count_ { 1 },
+					color_ { color::black } {}
 
 				T& value() {
 					return value_;
@@ -114,12 +114,12 @@ namespace shared {
 			T* ptr_;
 
 		public:
-			constexpr ptr() noexcept: counted_(nullptr), ptr_() {}
+			constexpr ptr() noexcept: counted_ { nullptr }, ptr_ {} {}
 
 			template <typename U>
 			ptr(ptr<U> const& rhs):
-				counted_(rhs.counted_),
-				ptr_(rhs.ptr_) {
+				counted_ { rhs.counted_ },
+				ptr_ { rhs.ptr_ } {
 				if (counted_ != nullptr) {
 					++counted_->use_count();
 				}
@@ -127,8 +127,8 @@ namespace shared {
 
 			template <typename U>
 			ptr(ptr<U>&& rhs) noexcept:
-				counted_(rhs.counted_),
-				ptr_(rhs.ptr_) {
+				counted_ { rhs.counted_ },
+				ptr_ { rhs.ptr_ } {
 				rhs.counted_ = nullptr;
 			}
 
@@ -182,8 +182,8 @@ namespace shared {
 
 			template <typename... Args>
 			ptr(make_tag, Args&&... args):
-				counted_(new detail::counted<T>(std::forward<Args>(args)...)),
-				ptr_(&counted_->value()) {}
+				counted_ { new detail::counted<T> { std::forward<Args>(args)... } },
+				ptr_ { &counted_->value() } {}
 
 			void decrement() const {
 				auto counted = counted_;
@@ -220,12 +220,16 @@ namespace shared {
 
 			template <typename U, typename... Args>
 			friend
-			ptr<U> make(Args... args) {
-				return ptr<U>(make_tag(), std::forward<Args>(args)...);
-			}
+			ptr<U> make(Args... args);
 
 			template <typename U> friend class detail::counted;
 		};
+
+		template <typename U, typename... Args>
+		inline
+		ptr<U> make(Args... args) {
+			return ptr<U>(typename ptr<U>::make_tag {}, std::forward<Args>(args)...);
+		}
 
 		template <>
 		class children_traits<int> {
