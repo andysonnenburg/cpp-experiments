@@ -33,6 +33,7 @@ namespace memory {
 					}
 				};
 
+			private:
 				template <std::size_t I, std::size_t N, typename... Types>
 				struct for_ {
 					template <typename F>
