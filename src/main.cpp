@@ -27,14 +27,17 @@ namespace memory {
 
 			template <>
 			struct for_each<person_tag> {
-				template <typename T>
-				struct apply {
-					template <typename F>
-					static void call(T const& person, F const& f) {
-						f(person.id);
-						f(person.name);
-					}
-				};
+				template <typename>
+				struct apply;
+			};
+
+			template <>
+			struct for_each<person_tag>::apply<person> {
+				template <typename F>
+				static void call(person const& person, F const& f) {
+					f(person.id);
+					f(person.name);
+				}
 			};
 		}
 	}
