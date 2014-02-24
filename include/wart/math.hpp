@@ -10,10 +10,10 @@ namespace wart {
 		struct gcd;
 
 		template <std::size_t A>
-		struct gcd<A, 0>: public std::integral_constant<std::size_t, A> {};
+		struct gcd<A, 0>: std::integral_constant<std::size_t, A> {};
 
 		template <std::size_t A, std::size_t B>
-		struct gcd: public gcd<B, A % B> {};
+		struct gcd: gcd<B, A % B> {};
 
 		template <std::size_t A, std::size_t B>
 		struct lcm: std::integral_constant<std::size_t, A * B / gcd<A, B>::value> {};
