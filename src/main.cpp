@@ -6,6 +6,7 @@
 #include "wart/for_each.hpp"
 #include "wart/for_each/container.hpp"
 #include "wart/for_each/tuple.hpp"
+#include "wart/math.hpp"
 
 struct person {
 	int id;
@@ -65,5 +66,8 @@ int main() {
 		});
 	person person { 1, "andy" };
 	for_each(person, print());
+
+	std::cout << math::lcm<7, 4>::value << std::endl;
+
 	return 0;
 }
