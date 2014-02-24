@@ -7,6 +7,7 @@
 #include "wart/for_each/container.hpp"
 #include "wart/for_each/tuple.hpp"
 #include "wart/math.hpp"
+#include "wart/union.hpp"
 
 struct person {
 	int id;
@@ -55,6 +56,9 @@ struct print {
 
 int main() {
 	using namespace wart;
+
+	typedef union_t<char, int> test;
+	std::cout << sizeof(test) << std::endl;
 
 	std::vector<int> xs { 1, 2, 3 };
 	for_each(xs, [](int x) {
