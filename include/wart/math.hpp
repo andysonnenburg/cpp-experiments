@@ -6,17 +6,37 @@
 
 namespace wart {
 	namespace math {
-		template <std::size_t, std::size_t>
-		struct gcd;
+		template <typename T>
+		constexpr T gcd(T const& lhs, T const& rhs) {
+			return rhs == 0?
+				lhs :
+				gcd(rhs, lhs % rhs);
+		}
 
-		template <std::size_t A>
-		struct gcd<A, 0>: std::integral_constant<std::size_t, A> {};
+		template <typename T>
+		constexpr T lcm(T const& lhs, T const& rhs) {
+			return lhs * rhs / gcd(lhs, rhs);
+		}
 
-		template <std::size_t A, std::size_t B>
-		struct gcd: gcd<B, A % B> {};
+		template <typename T, T Head, T... Tail>
+		struct gcd_constant;
 
-		template <std::size_t A, std::size_t B>
-		struct lcm: std::integral_constant<std::size_t, A * B / gcd<A, B>::value> {};
+		template <typename T, T Head>
+		struct gcd_constant<T, Head>: std::integral_constant<T, Head> {};
+
+		template <typename T, T Head, T... Tail>
+		struct gcd_constant:
+			std::integral_constant<T, gcd(Head, gcd_constant<T, Tail...>::value)> {};
+
+		template <typename T, T Head, T... Tail>
+		struct lcm_constant;
+
+		template <typename T, T Head>
+		struct lcm_constant<T, Head>: std::integral_constant<T, Head> {};
+
+		template <typename T, T Head, T... Tail>
+		struct lcm_constant:
+			std::integral_constant<T, lcm(Head, lcm_constant<T, Tail...>::value)> {};
 	}
 }
 

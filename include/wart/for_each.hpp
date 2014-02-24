@@ -20,6 +20,15 @@ namespace wart {
 			::template apply<T>
 			::call(container, f);
 	}
+
+	template <typename T, typename F>
+	void for_each(T& container, F const& f) {
+		extension
+			::for_each
+			::for_each<typename extension::for_each::tag_of<T>::type>
+			::template apply<T>
+			::call(container, f);
+	}
 }
 
 #endif

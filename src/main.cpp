@@ -67,7 +67,7 @@ int main() {
 	person person { 1, "andy" };
 	for_each(person, print());
 
-	std::cout << math::lcm<7, 4>::value << std::endl;
+	std::cout << math::lcm_constant<std::size_t, 28, 7, 42>::value << std::endl;
 
 	return 0;
 }
