@@ -1,9 +1,9 @@
-#ifndef MEMORY_TRACEABLE_CONTAINER_HPP
-#define MEMORY_TRACEABLE_CONTAINER_HPP
+#ifndef WART_FOR_EACH_CONTAINER_HPP
+#define WART_FOR_EACH_CONTAINER_HPP
 
-namespace memory {
-	namespace traceable {
-		namespace extension {
+namespace wart {
+	namespace extension {
+		namespace for_each {
 			template <typename>
 			struct for_each;
 
@@ -15,7 +15,7 @@ namespace memory {
 				struct apply {
 					template <typename F>
 					static void call(T const& container, F const& f) {
-						for (auto& element : container) {
+						for (auto const& element : container) {
 							f(element);
 						}
 					}

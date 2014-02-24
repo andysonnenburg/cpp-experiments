@@ -3,7 +3,9 @@
 #include <tuple>
 #include <vector>
 
-#include "memory/traceable.hpp"
+#include "wart/for_each.hpp"
+#include "wart/for_each/container.hpp"
+#include "wart/for_each/tuple.hpp"
 
 struct person {
 	int id;
@@ -12,9 +14,9 @@ struct person {
 
 struct person_tag;
 
-namespace memory {
-	namespace traceable {
-		namespace extension {
+namespace wart {
+	namespace extension {
+		namespace for_each {
 			template <typename T>
 			struct tag_of<std::vector<T>> {
 				typedef container_tag type;
@@ -51,7 +53,7 @@ struct print {
 };
 
 int main() {
-	using namespace memory::traceable;
+	using namespace wart;
 
 	std::vector<int> xs { 1, 2, 3 };
 	for_each(xs, [](int x) {

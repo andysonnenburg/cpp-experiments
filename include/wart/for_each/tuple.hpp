@@ -1,12 +1,12 @@
-#ifndef MEMORY_TRACEABLE_TUPLE_HPP
-#define MEMORY_TRACEABLE_TUPLE_HPP
+#ifndef WART_FOR_EACH_TUPLE_HPP
+#define WART_FOR_EACH_TUPLE_HPP
 
 #include <cstddef>
 #include <tuple>
 
-namespace memory {
-	namespace traceable {
-		namespace extension {
+namespace wart {
+	namespace extension {
+		namespace for_each {
 			template <typename>
 			struct tag_of;
 
