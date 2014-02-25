@@ -1,6 +1,8 @@
 #ifndef WART_FOR_EACH_HPP
 #define WART_FOR_EACH_HPP
 
+#include <utility>
+
 namespace wart {
 	namespace extension {
 		namespace for_each {
@@ -13,21 +15,12 @@ namespace wart {
 	}
 
 	template <typename T, typename F>
-	void for_each(T const& container, F const& f) {
+	void for_each(T&& container, F&& f) {
 		extension
 			::for_each
-			::for_each<typename extension::for_each::tag_of<T>::type>
-			::template apply<T>
-			::call(container, f);
-	}
-
-	template <typename T, typename F>
-	void for_each(T& container, F const& f) {
-		extension
-			::for_each
-			::for_each<typename extension::for_each::tag_of<T>::type>
-			::template apply<T>
-			::call(container, f);
+			::for_each<typename extension::for_each::tag_of<typename std::remove_reference<T>::type>::type>
+			::template apply<typename std::remove_reference<T>::type>
+			::call(std::forward<T>(container), std::forward<F>(f));
 	}
 }
 

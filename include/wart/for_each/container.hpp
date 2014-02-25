@@ -14,9 +14,9 @@ namespace wart {
 				template <typename T>
 				struct apply {
 					template <typename F>
-					static void call(T const& container, F const& f) {
+					static void call(T const& container, F&& f) {
 						for (auto const& element : container) {
-							f(element);
+							std::forward<F>(f)(element);
 						}
 					}
 				};

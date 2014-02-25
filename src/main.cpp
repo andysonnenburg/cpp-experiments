@@ -8,6 +8,7 @@
 #include "wart/for_each/tuple.hpp"
 #include "wart/math.hpp"
 #include "wart/union.hpp"
+#include "wart/variant.hpp"
 
 struct person {
 	int id;
@@ -54,11 +55,24 @@ struct print {
 	}
 };
 
+struct print_visitor {
+	typedef void result_type;
+	void operator()(int x) const {
+		std::cout << "int(" << x << ")" << std::endl;
+	}
+	void operator()(double x) const {
+		std::cout << "double(" << x << ")" << std::endl;
+	}
+};
+
 int main() {
 	using namespace wart;
 
 	typedef union_t<char, int> test;
 	std::cout << sizeof(test) << std::endl;
+
+	const variant<int, double> value(1);
+	value.accept(print_visitor());
 
 	std::vector<int> xs { 1, 2, 3 };
 	for_each(xs, [](int x) {
