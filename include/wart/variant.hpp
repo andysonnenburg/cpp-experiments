@@ -2,6 +2,7 @@
 #define WART_VARIANT_HPP
 
 #include <type_traits>
+#include <utility>
 
 #include "union.hpp"
 
@@ -31,8 +32,8 @@ namespace wart {
 		}
 
 		template <typename F>
-		typename std::common_type<std::result_of<F(Types)>::type...>::type accept(F&& f) const {
-			using result_type std::common_type<std::result_of<F(Types)>::type...>::type
+		typename std::common_type<typename std::result_of<F(Types)>::type...>::type accept(F&& f) const {
+			using result_type = typename std::common_type<std::result_of<F(Types)>::type...>::type;
 			using call = result_type (*)(F&& f, union_t<Types...> const&);
 			static call calls[] {
 				[](F&& f, union_t<Types...> const& value) {
@@ -43,8 +44,8 @@ namespace wart {
 		}
 
 		template <typename F>
-		typename std::common_type<std::result_of<F(Types)>::type...>::type accept(F&& f) {
-			using result_type std::common_type<std::result_of<F(Types)>::type...>::type
+		typename std::common_type<typename std::result_of<F(Types)>::type...>::type accept(F&& f) {
+			using result_type = std::common_type<std::result_of<F(Types)>::type...>::type;
 			using call = result_type (*)(F&& f, union_t<Types...>&);
 			static call calls[] {
 				[](F&& f, union_t<Types...>& value) {

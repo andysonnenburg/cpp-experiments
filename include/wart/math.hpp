@@ -1,7 +1,6 @@
 #ifndef WART_MATH_HPP
 #define WART_MATH_HPP
 
-#include <algorithm>
 #include <type_traits>
 
 namespace wart {
