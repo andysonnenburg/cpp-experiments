@@ -39,6 +39,17 @@ namespace wart {
 			};
 			return calls[which_](std::forward<F>(f), union_);
 		}
+
+		template <typename F>
+		typename F::result_type accept(F&& f) {
+			using call = typename F::result_type (*)(F&& f, union_t<Types...>&);
+			static call calls[] {
+				[](F&& f, union_t<Types...>& value) {
+					return f(*static_cast<Types*>(static_cast<void*>(&value)));
+				}...
+			};
+			return calls[which_](std::forward<F>(f), union_);
+		}
 	};
 }
 

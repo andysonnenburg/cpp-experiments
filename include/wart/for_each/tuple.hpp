@@ -28,8 +28,8 @@ namespace wart {
 				template <typename... Types>
 				struct apply<std::tuple<Types...>> {
 					template <typename F>
-					static void call(std::tuple<Types...> const& tuple, F const& f) {
-						for_<0, sizeof...(Types), Types...>::call(tuple, f);
+					static void call(std::tuple<Types...> const& tuple, F&& f) {
+						for_<0, sizeof...(Types), Types...>::call(tuple, std::forward<F>(f));
 					}
 				};
 
@@ -37,16 +37,16 @@ namespace wart {
 				template <std::size_t I, std::size_t N, typename... Types>
 				struct for_ {
 					template <typename F>
-					static void call(std::tuple<Types...> const& tuple, F const& f) {
+					static void call(std::tuple<Types...> const& tuple, F&& f) {
 						f(std::get<I>(tuple));
-						for_<I + 1, N, Types...>::call(tuple, f);
+						for_<I + 1, N, Types...>::call(tuple, std::forward<F>(f));
 					}
 				};
 
 				template <std::size_t N, typename... Types>
 				struct for_<N, N, Types...> {
 					template <typename F>
-					static void call(std::tuple<Types...> const&, F const&) {}
+					static void call(std::tuple<Types...> const&, F&&) {}
 				};
 			};
 		}
