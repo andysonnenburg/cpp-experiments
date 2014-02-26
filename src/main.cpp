@@ -55,12 +55,13 @@ struct print {
 };
 
 struct print_visitor {
-	typedef void result_type;
-	void operator()(int& x) const {
+	double operator()(int& x) {
 		std::cout << "int(" << x << ")" << std::endl;
+		return x;
 	}
-	void operator()(double const& x) const {
+	double operator()(double const& x) const {
 		std::cout << "double(" << x << ")" << std::endl;
+		return x;
 	}
 };
 
@@ -70,8 +71,8 @@ int main() {
 	typedef union_t<char, int> test;
 	std::cout << sizeof(test) << std::endl;
 
-	variant<int, double> value(1);
-	value.accept(print_visitor());
+	const variant<int, double> value(1);
+	std::cout << value.accept(print_visitor()) << std::endl;
 
 	std::vector<int> xs { 1, 2, 3 };
 	for_each(xs, [](int x) {

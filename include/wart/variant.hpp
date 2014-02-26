@@ -27,13 +27,21 @@ namespace wart {
 
 	public:
 		template <typename T>
-		variant(T const& value): which_(detail::elem_index<T, Types...>::value) {
-			new (&union_) T(value);
+		variant(T const& value): which_{detail::elem_index<T, Types...>::value} {
+			new (&union_) T{value};
+		}
+
+		~variant() {
+			accept(destroy{});
 		}
 
 		template <typename F>
-		typename std::common_type<typename std::result_of<F(Types)>::type...>::type accept(F&& f) const {
-			using result_type = typename std::common_type<std::result_of<F(Types)>::type...>::type;
+		typename std::common_type<
+			typename std::result_of<F(Types)>::type...
+			>::type accept(F&& f) const {
+			using result_type = typename std::common_type<
+				typename std::result_of<F(Types)>::type...
+				>::type;
 			using call = result_type (*)(F&& f, union_t<Types...> const&);
 			static call calls[] {
 				[](F&& f, union_t<Types...> const& value) {
@@ -44,8 +52,12 @@ namespace wart {
 		}
 
 		template <typename F>
-		typename std::common_type<typename std::result_of<F(Types)>::type...>::type accept(F&& f) {
-			using result_type = std::common_type<std::result_of<F(Types)>::type...>::type;
+		typename std::common_type<
+			typename std::result_of<F(Types)>::type...
+			>::type accept(F&& f) {
+			using result_type = typename std::common_type<
+				typename std::result_of<F(Types)>::type...
+				>::type;
 			using call = result_type (*)(F&& f, union_t<Types...>&);
 			static call calls[] {
 				[](F&& f, union_t<Types...>& value) {
@@ -54,6 +66,14 @@ namespace wart {
 			};
 			return calls[which_](std::forward<F>(f), union_);
 		}
+
+	private:
+		struct destroy {
+			template <typename T>
+			void operator()(T const& value) {
+				value.~T();
+			}
+		};
 	};
 }
 
