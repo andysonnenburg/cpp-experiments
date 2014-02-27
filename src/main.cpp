@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string>
 #include <tuple>
 #include <vector>
 
@@ -55,13 +56,14 @@ struct print {
 };
 
 struct print_visitor {
-	double operator()(int& x) {
-		std::cout << "int(" << x << ")" << std::endl;
-		return x;
+	void operator()(std::string const& x) const {
+		std::cout << "string(" << x << ")" << std::endl;
 	}
-	double operator()(double const& x) const {
+	void operator()(int const& x) const {
+		std::cout << "int(" << x << ")" << std::endl;
+	}
+	void operator()(double const& x) const {
 		std::cout << "double(" << x << ")" << std::endl;
-		return x;
 	}
 };
 
@@ -71,8 +73,11 @@ int main() {
 	typedef union_t<char, int> test;
 	std::cout << sizeof(test) << std::endl;
 
-	const variant<int, double> value(1);
-	std::cout << value.accept(print_visitor()) << std::endl;
+	variant<std::string, int> value(1);
+	const print_visitor f{};
+	value.accept(f);
+	variant<std::string, int> other(value);
+	other.accept(f);
 
 	std::vector<int> xs { 1, 2, 3 };
 	for_each(xs, [](int x) {
