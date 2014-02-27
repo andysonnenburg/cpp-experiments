@@ -4,114 +4,116 @@
 #include <type_traits>
 #include <utility>
 
-#include "union.hpp"
+#include "union_storage.hpp"
 
 namespace wart {
 	namespace detail {
-		template <typename Elem, typename Head, typename... Tail>
-		struct elem_index;
+		namespace variant {
+			template <typename Elem, typename Head, typename... Tail>
+			struct elem_index;
 
-		template <typename Head, typename... Tail>
-		struct elem_index<Head, Head, Tail...>:
-			std::integral_constant<int, 0> {};
+			template <typename Head, typename... Tail>
+			struct elem_index<Head, Head, Tail...>:
+				std::integral_constant<int, 0> {};
 
-		template <typename Elem, typename Head, typename... Tail>
-		struct elem_index:
-			std::integral_constant<int, elem_index<Elem, Tail...>::value + 1> {};
+			template <typename Elem, typename Head, typename... Tail>
+			struct elem_index:
+				std::integral_constant<int, elem_index<Elem, Tail...>::value + 1> {};
 
-		template <typename Elem, typename... List>
-		struct elem;
+			template <bool... List>
+			struct all;
 
-		template <typename Head, typename... Tail>
-		struct elem<Head, Head, Tail...>: std::true_type {};
+			template <>
+			struct all<>: std::true_type {};
 
-		template <typename Elem, typename Head, typename... Tail>
-		struct elem<Elem, Head, Tail...>: elem<Elem, Tail...>::type {};
+			template <bool... Tail>
+			struct all<true, Tail...>: all<Tail...>::type {};
 
-		template <typename Elem>
-		struct elem<Elem>: std::false_type {};
+			template <bool... Tail>
+			struct all<false, Tail...>: std::false_type {};
 
-		template <bool... List>
-		struct all;
+			struct copier {
+				void* memory;
+				template <typename T>
+				void operator()(T const& value) {
+					new (memory) T(value);
+				}
+			};
 
-		template <>
-		struct all<>: std::true_type {};
+			struct assigner {
+				void* memory;
+				template <typename T>
+				void operator()(T const& value) {
+					*static_cast<T*>(memory) = value;
+				}
+			};
 
-		template <bool... Tail>
-		struct all<true, Tail...>: all<Tail...>::type {};
+			struct destroyer {
+				template <typename T>
+				void operator()(T const& value) {
+					value.~T();
+				}
+			};
 
-		template <bool... Tail>
-		struct all<false, Tail...>: std::false_type {};
+			template <typename Variant>
+			struct unassignable {};
 
-		struct construct {
-			void* memory;
-			template <typename T>
-			void operator()(T const& value) {
-				new (memory) T(value);
-			}
-		};
+			template <typename Variant>
+			struct assignable {
+				Variant& assign(Variant const& rhs) & {
+					if (self() == &rhs) {
+						return *self();
+					}
+					if (self()->which_ == rhs.which_) {
+						rhs.accept(assigner{&self()->union_storage_});
+					} else {
+						self()->accept(destroyer{});
+						self()->which_ = rhs.which_;
+						rhs.accept(copier{&self()->union_storage_});
+					}
+					return *self();
+				}
 
-		struct assign {
-			void* memory;
-			template <typename T>
-			void operator()(T const& value) {
-				*static_cast<T*>(memory) = value;
-			}
-		};
+			private:
+				Variant* self() {
+					return static_cast<Variant*>(this);
+				}
 
-		struct destroy {
-			template <typename T>
-			void operator()(T const& value) {
-				value.~T();
-			}
-		};
-
-		template <typename T, typename... Types>
-		inline
-		typename std::enable_if<elem<T, Types...>::value, T&>::type
-		union_cast(union_t<Types...>& value) {
-			return *static_cast<T*>(static_cast<void*>(&value));
-		}
-
-		template <typename T, typename... Types>
-		inline
-		typename std::enable_if<elem<T, Types...>::value, T const&>::type
-		union_cast(union_t<Types...> const& value) {
-			return *static_cast<T const*>(static_cast<void const*>(&value));
+				Variant const* self() const {
+					return static_cast<Variant*>(this);
+				}
+			};
 		}
 	}
 
 	template <typename... Types>
-	class variant {
+	class variant:
+		std::conditional<
+		detail::variant::all<std::is_nothrow_constructible<Types>::value...>::value,
+		detail::variant::assignable<variant<Types...>>,
+		detail::variant::unassignable<variant<Types...>>>::type {
 		int which_;
-		union_t<Types...> union_;
+		union_storage<Types...> union_storage_;
 
 	public:
 		template <typename T>
-		variant(T const& value): which_{detail::elem_index<T, Types...>::value} {
-			new (&union_) T{value};
+		variant(T const& value): which_{detail::variant::elem_index<T, Types...>::value} {
+			new (&union_storage_) T{value};
 		}
 
 		variant(variant const& rhs): which_{rhs.which_} {
-			rhs.accept(detail::construct{&union_});
+			rhs.accept(detail::variant::copier{&union_storage_});
 		}
 
 		~variant() {
-			accept(detail::destroy{});
+			accept(detail::variant::destroyer{});
 		}
 
-		typename std::enable_if<
-			detail::all<std::is_nothrow_constructible<Types...>::value>::value,
-			variant const&
-			>::type operator=(variant const& rhs) {
-			if (which_ == rhs.which_) {
-				rhs.accept(detail::assign{&union_});
-			} else {
-				accept(detail::destroy{});
-				which_ = rhs.which_;
-				rhs.accept(detail::construct{&union_});
-			}
-			return *this;
+		variant& operator=(variant const& rhs) & {
+			static_assert
+				(detail::variant::all<std::is_nothrow_constructible<Types>::value...>::value,
+				 "variant is assignable only when the contained types are nothrow constructible");
+			return detail::variant::assignable<variant>::assign(rhs);
 		}
 
 		template <typename F>
@@ -121,13 +123,13 @@ namespace wart {
 			using result_type = typename std::common_type<
 				typename std::result_of<F(Types)>::type...
 				>::type;
-			using call = result_type (*)(F&& f, union_t<Types...> const&);
+			using call = result_type (*)(F&& f, union_storage<Types...> const&);
 			static call calls[] {
-				[](F&& f, union_t<Types...> const& value) {
-					return std::forward<F>(f)(detail::union_cast<Types, Types...>(value));
+				[](F&& f, union_storage<Types...> const& value) {
+					return std::forward<F>(f)(union_cast<Types, Types...>(value));
 				}...
-			};
-			return calls[which_](std::forward<F>(f), union_);
+					};
+			return calls[which_](std::forward<F>(f), union_storage_);
 		}
 
 		template <typename F>
@@ -137,14 +139,16 @@ namespace wart {
 			using result_type = typename std::common_type<
 				typename std::result_of<F(Types)>::type...
 				>::type;
-			using call = result_type (*)(F&& f, union_t<Types...>&);
+			using call = result_type (*)(F&& f, union_storage<Types...>&);
 			static call calls[] {
-				[](F&& f, union_t<Types...>& value) {
-					return std::forward<F>(f)(detail::union_cast<Types, Types...>(value));
+				[](F&& f, union_storage<Types...>& value) {
+					return std::forward<F>(f)(union_cast<Types, Types...>(value));
 				}...
-			};
-			return calls[which_](std::forward<F>(f), union_);
+					};
+			return calls[which_](std::forward<F>(f), union_storage_);
 		}
+
+		friend struct detail::variant::assignable<variant<Types...>>;
 	};
 }
 

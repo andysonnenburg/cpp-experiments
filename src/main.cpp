@@ -7,7 +7,7 @@
 #include "wart/for_each/container.hpp"
 #include "wart/for_each/tuple.hpp"
 #include "wart/math.hpp"
-#include "wart/union.hpp"
+#include "wart/union_storage.hpp"
 #include "wart/variant.hpp"
 
 struct person {
@@ -70,7 +70,7 @@ struct print_visitor {
 int main() {
 	using namespace wart;
 
-	typedef union_t<char, int> test;
+	typedef union_storage<char, int> test;
 	std::cout << sizeof(test) << std::endl;
 
 	variant<std::string, int> value(1);
@@ -78,6 +78,8 @@ int main() {
 	value.accept(f);
 	variant<std::string, int> other(value);
 	other.accept(f);
+	other = value;
+	other.accept(print_visitor());
 
 	std::vector<int> xs { 1, 2, 3 };
 	for_each(xs, [](int x) {
