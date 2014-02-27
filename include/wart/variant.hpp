@@ -145,9 +145,6 @@ namespace wart {
 			};
 			return calls[which_](std::forward<F>(f), union_);
 		}
-
-	private:
-		friend struct detail::destroy;
 	};
 }
 
