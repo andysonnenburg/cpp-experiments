@@ -34,7 +34,7 @@ namespace wart {
 	T const& union_cast(union_storage<Types...> const& value) {
 		using namespace detail::union_storage;
 		static_assert(elem<T, Types...>::value,
-		              "template alias union_storage can only be safely cast to one of the template arguments Types");
+		              "template alias union_storage can only be cast to one of the template arguments Types");
 		return *static_cast<T const*>(static_cast<void const*>(&value));
 	}
 
@@ -43,7 +43,7 @@ namespace wart {
 	T& union_cast(union_storage<Types...>& value) {
 		using namespace detail::union_storage;
 		static_assert(elem<T, Types...>::value,
-		              "template alias union_storage can only be safely cast to one of the template arguments Types");
+		              "template alias union_storage can only be cast to one of the template arguments Types");
 		return *static_cast<T*>(static_cast<void*>(&value));
 	}
 
@@ -52,7 +52,7 @@ namespace wart {
 	T&& union_cast(union_storage<Types...>&& value) {
 		using namespace detail::union_storage;
 		static_assert(elem<T, Types...>::value,
-		              "template alias union_storage can only be safely cast to one of the template arguments Types");
+		              "template alias union_storage can only be cast to one of the template arguments Types");
 		return std::forward<T>(*static_cast<T*>(static_cast<void*>(&value)));
 	}
 }
