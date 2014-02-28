@@ -43,13 +43,9 @@ namespace wart {
 			template <typename T, typename U = void>
 			using enable_if_movable = std::enable_if<is_movable<T>::value, U>;
 
-			template <typename T>
-			using is_nothrow_copy_constructible =
-				std::is_nothrow_constructible<T, T const&>;
-
-			template <typename T>
-			using is_nothrow_move_constructible =
-				std::is_nothrow_constructible<T, T&&>;
+			template <typename F, typename... ArgTypes>
+			using common_result_of =
+				std::common_type<typename std::result_of<F(ArgTypes)>::type...>;
 
 			struct copy_construct {
 				void* storage;
@@ -111,11 +107,13 @@ namespace wart {
 			new (&union_storage_) T(std::move(value));
 		}
 
-		variant(variant const& rhs): which_{rhs.which_} {
+		variant(variant const& rhs):
+			which_{rhs.which_} {
 			rhs.accept(detail::variant::copy_construct{&union_storage_});
 		}
 
-		variant(variant&& rhs): which_{rhs.which_} {
+		variant(variant&& rhs):
+			which_{rhs.which_} {
 			std::move(rhs).accept(detail::variant::move_construct{&union_storage_});
 		}
 
@@ -124,46 +122,43 @@ namespace wart {
 		}
 
 		variant& operator=(variant const& rhs) & {
-			using detail::variant::all;
-			static_assert(all<detail::variant::is_nothrow_copy_constructible<Types>::value...>::value,
+			using namespace detail::variant;
+			static_assert(all<std::is_nothrow_copy_constructible<Types>::value...>::value,
 			              "all template arguments Types must be nothrow copy constructible in class template variant");
 			if (this == &rhs) {
 				return *this;
 			}
 			if (which_ == rhs.which_) {
-				rhs.accept(detail::variant::copy_assign{&union_storage_});
+				rhs.accept(copy_assign{&union_storage_});
 			} else {
-				accept(detail::variant::destroy{});
+				accept(destroy{});
 				which_ = rhs.which_;
-				rhs.accept(detail::variant::copy_construct{&union_storage_});
+				rhs.accept(copy_construct{&union_storage_});
 			}
 			return *this;
 		}
 
 		variant& operator=(variant&& rhs) & {
-			using detail::variant::all;
+			using namespace detail::variant;
 			static_assert(all<std::is_nothrow_move_constructible<Types>::value...>::value,
 			              "all template arguments Types must be nothrow move constructible in class template variant");
 			if (this == &rhs) {
 				return *this;
 			}
 			if (which_ == rhs.which_) {
-				std::move(rhs).accept(detail::variant::move_assign{&union_storage_});
+				std::move(rhs).accept(move_assign{&union_storage_});
 			} else {
 				accept(detail::variant::destroy{});
 				which_ = rhs.which_;
-				std::move(rhs).accept(detail::variant::move_construct{&union_storage_});
+				std::move(rhs).accept(move_construct{&union_storage_});
 			}
 			return *this;
 		}
 
 		template <typename F>
-		typename std::common_type<
-			typename std::result_of<F(Types)>::type...
-			>::type accept(F&& f) const& {
-			using result_type = typename std::common_type<
-				typename std::result_of<F(Types)>::type...
-				>::type;
+		typename detail::variant::common_result_of<F, Types...>::type accept(F&& f) const& {
+			using namespace detail::variant;
+			using result_type = typename common_result_of<F, Types...>::type;
 			using call = result_type (*)(F&& f, union_storage<Types...> const&);
 			static call calls[] {
 				[](F&& f, union_storage<Types...> const& value) {
@@ -174,12 +169,9 @@ namespace wart {
 		}
 
 		template <typename F>
-		typename std::common_type<
-			typename std::result_of<F(Types)>::type...
-			>::type accept(F&& f) & {
-			using result_type = typename std::common_type<
-				typename std::result_of<F(Types)>::type...
-				>::type;
+		typename detail::variant::common_result_of<F, Types...>::type accept(F&& f) & {
+			using namespace detail::variant;
+			using result_type = typename common_result_of<F, Types...>::type;
 			using call = result_type (*)(F&& f, union_storage<Types...>&);
 			static call calls[] {
 				[](F&& f, union_storage<Types...>& value) {
@@ -190,12 +182,9 @@ namespace wart {
 		}
 
 		template <typename F>
-		typename std::common_type<
-			typename std::result_of<F(Types)>::type...
-			>::type accept(F&& f) && {
-			using result_type = typename std::common_type<
-				typename std::result_of<F(Types)>::type...
-				>::type;
+		typename detail::variant::common_result_of<F, Types...>::type accept(F&& f) && {
+			using namespace detail::variant;
+			using result_type = typename common_result_of<F, Types...>::type;
 			using call = result_type (*)(F&& f, union_storage<Types...>&&);
 			static call calls[] {
 				[](F&& f, union_storage<Types...>&& value) {

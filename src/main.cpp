@@ -57,14 +57,18 @@ struct print {
 
 struct test {
 	test() = default;
-	test(test const&) {
+	test(test const&) noexcept {
 		std::cout << "copied" << std::endl;
 	}
 	test(test&&) noexcept {
 		std::cout << "moved" << std::endl;
 	}
+	test& operator=(test const&) & {
+		std::cout << "copy-assigned" << std::endl;
+		return *this;
+	}
 	test& operator=(test&&) & {
-		std::cout << "move-assinged" << std::endl;
+		std::cout << "move-assigned" << std::endl;
 		return *this;
 	}
 };
