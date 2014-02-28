@@ -10,7 +10,7 @@
 namespace wart {
 	namespace detail {
 		namespace variant {
-			template <typename Elem, typename Head, typename... Tail>
+			template <typename Elem, typename... List>
 			struct elem_index;
 
 			template <typename Head, typename... Tail>
@@ -18,7 +18,7 @@ namespace wart {
 				std::integral_constant<int, 0> {};
 
 			template <typename Elem, typename Head, typename... Tail>
-			struct elem_index:
+			struct elem_index<Elem, Head, Tail...>:
 				std::integral_constant<int, elem_index<Elem, Tail...>::value + 1> {};
 
 			template <bool... List>
@@ -34,11 +34,9 @@ namespace wart {
 			struct all<false, Tail...>: std::false_type {};
 
 			template <typename T>
-			using is_movable =
-				typename std::conditional<
-				std::is_rvalue_reference<T&&>::value && !std::is_const<T>::value,
-				std::true_type,
-				std::false_type>::type;
+			using is_movable = typename std::integral_constant
+				<bool,
+				 std::is_rvalue_reference<T&&>::value && !std::is_const<T>::value>;
 
 			template <typename T, typename U = void>
 			using enable_if_movable = std::enable_if<is_movable<T>::value, U>;
@@ -74,15 +72,16 @@ namespace wart {
 			struct move_assign {
 				void* storage;
 				template <typename T>
-				void operator()(T&& value) {
+				typename enable_if_movable<T>::type operator()(T&& value) {
 					*static_cast<T*>(storage) = std::move(value);
 				}
 			};
 
 			struct destroy {
 				template <typename T>
-				void operator()(T const& value) {
-					value.~T();
+				void operator()(T&& value) {
+					using type = typename std::remove_reference<T>::type;
+					std::forward<T>(value).~type();
 				}
 			};
 		}
@@ -94,6 +93,11 @@ namespace wart {
 		union_storage<Types...> union_storage_;
 
 	public:
+		template <typename F>
+		using result_of = detail::variant::common_result_of<F, Types...>;
+		template <typename F>
+		using result_of_t = typename result_of<F>::type;
+
 		template <typename T>
 		variant(T const& value):
 			which_{detail::variant::elem_index<T, Types...>::value} {
@@ -156,10 +160,8 @@ namespace wart {
 		}
 
 		template <typename F>
-		typename detail::variant::common_result_of<F, Types...>::type accept(F&& f) const& {
-			using namespace detail::variant;
-			using result_type = typename common_result_of<F, Types...>::type;
-			using call = result_type (*)(F&& f, union_storage<Types...> const&);
+		result_of_t<F> accept(F&& f) const& {
+			using call = result_of_t<F> (*)(F&& f, union_storage<Types...> const&);
 			static call calls[] {
 				[](F&& f, union_storage<Types...> const& value) {
 					return std::forward<F>(f)(union_cast<Types, Types...>(value));
@@ -169,10 +171,8 @@ namespace wart {
 		}
 
 		template <typename F>
-		typename detail::variant::common_result_of<F, Types...>::type accept(F&& f) & {
-			using namespace detail::variant;
-			using result_type = typename common_result_of<F, Types...>::type;
-			using call = result_type (*)(F&& f, union_storage<Types...>&);
+		result_of_t<F> accept(F&& f) & {
+			using call = result_of_t<F> (*)(F&& f, union_storage<Types...>&);
 			static call calls[] {
 				[](F&& f, union_storage<Types...>& value) {
 					return std::forward<F>(f)(union_cast<Types, Types...>(value));
@@ -182,13 +182,11 @@ namespace wart {
 		}
 
 		template <typename F>
-		typename detail::variant::common_result_of<F, Types...>::type accept(F&& f) && {
-			using namespace detail::variant;
-			using result_type = typename common_result_of<F, Types...>::type;
-			using call = result_type (*)(F&& f, union_storage<Types...>&&);
+		result_of_t<F> accept(F&& f) && {
+			using call = result_of_t<F> (*)(F&& f, union_storage<Types...>&&);
 			static call calls[] {
 				[](F&& f, union_storage<Types...>&& value) {
-					return std::forward<F>(f)(std::move(union_cast<Types, Types...>(value)));
+					return std::forward<F>(f)(union_cast<Types, Types...>(std::move(value)));
 				}...
 			};
 			return calls[which_](std::forward<F>(f), std::move(union_storage_));
