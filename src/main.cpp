@@ -60,8 +60,12 @@ struct test {
 	test(test const&) {
 		std::cout << "copied" << std::endl;
 	}
-	test(test&&) {
+	test(test&&) noexcept {
 		std::cout << "moved" << std::endl;
+	}
+	test& operator=(test&&) & {
+		std::cout << "move-assinged" << std::endl;
+		return *this;
 	}
 };
 
@@ -78,9 +82,6 @@ struct print_visitor {
 	void operator()(test const&) const {
 		std::cout << "test()" << std::endl;
 	}
-	void operator()(typename std::aligned_storage<4, 4>::type const&) const {
-		std::cout << "what" << std::endl;
-	}
 };
 
 int main() {
@@ -94,6 +95,7 @@ int main() {
 	other.accept(print_visitor());
 	variant<test> other2 = variant<test>(test());
 	other2.accept(print_visitor());
+	other2 = variant<test>(test());
 
 	std::vector<int> xs { 1, 2, 3 };
 	for_each(xs, [](int x) {
