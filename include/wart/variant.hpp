@@ -105,11 +105,13 @@ namespace wart {
 		}
 
 		template <typename T>
-		variant(T&& value,
-		        typename detail::variant::enable_if_movable<T>::type* = nullptr):
+		variant(T&& value):
 			which_{detail::variant::elem_index<T, Types...>::value} {
 			new (&union_storage_) T(std::move(value));
 		}
+
+		variant(variant& rhs):
+			variant(static_cast<const variant&>(rhs)) {}
 
 		variant(variant const& rhs):
 			which_{rhs.which_} {
