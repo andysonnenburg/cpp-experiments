@@ -33,18 +33,26 @@ namespace wart {
 			struct all<false, Tail...>: std::false_type {};
 
 			struct copier {
-				void* memory;
+				void* storage;
 				template <typename T>
 				void operator()(T const& value) {
-					new (memory) T(value);
+					new (storage) T(value);
+				}
+			};
+
+			struct move_copier {
+				void* storage;
+				template <typename T>
+				void operator()(T&& value) {
+					new (storage) T(std::move(value));
 				}
 			};
 
 			struct assigner {
-				void* memory;
+				void* storage;
 				template <typename T>
 				void operator()(T const& value) {
-					*static_cast<T*>(memory) = value;
+					*static_cast<T*>(storage) = value;
 				}
 			};
 
@@ -54,55 +62,26 @@ namespace wart {
 					value.~T();
 				}
 			};
-
-			template <typename Variant>
-			struct unassignable {};
-
-			template <typename Variant>
-			struct assignable {
-				Variant& assign(Variant const& rhs) & {
-					if (self() == &rhs) {
-						return *self();
-					}
-					if (self()->which_ == rhs.which_) {
-						rhs.accept(assigner{&self()->union_storage_});
-					} else {
-						self()->accept(destroyer{});
-						self()->which_ = rhs.which_;
-						rhs.accept(copier{&self()->union_storage_});
-					}
-					return *self();
-				}
-
-			private:
-				Variant* self() {
-					return static_cast<Variant*>(this);
-				}
-
-				Variant const* self() const {
-					return static_cast<Variant*>(this);
-				}
-			};
 		}
 	}
 
 	template <typename... Types>
-	class variant:
-		std::conditional<
-		detail::variant::all<std::is_nothrow_constructible<Types>::value...>::value,
-		detail::variant::assignable<variant<Types...>>,
-		detail::variant::unassignable<variant<Types...>>>::type {
+	class variant {
 		int which_;
 		union_storage<Types...> union_storage_;
 
 	public:
 		template <typename T>
 		variant(T const& value): which_{detail::variant::elem_index<T, Types...>::value} {
-			new (&union_storage_) T{value};
+			new (&union_storage_) T(value);
 		}
 
 		variant(variant const& rhs): which_{rhs.which_} {
 			rhs.accept(detail::variant::copier{&union_storage_});
+		}
+
+		variant(variant&& rhs): which_{rhs.which_} {
+			std::move(rhs).accept(detail::variant::move_copier{&union_storage_});
 		}
 
 		~variant() {
@@ -110,16 +89,26 @@ namespace wart {
 		}
 
 		variant& operator=(variant const& rhs) & {
-			static_assert
-				(detail::variant::all<std::is_nothrow_constructible<Types>::value...>::value,
-				 "variant is assignable only when the contained types are nothrow constructible");
-			return detail::variant::assignable<variant>::assign(rhs);
+			using detail::variant::all;
+			static_assert(all<std::is_nothrow_constructible<Types>::value...>::value,
+			              "all of template arguments Types must be nothrow constructible in class template variant");
+			if (this == &rhs) {
+				return *this;
+			}
+			if (which_ == rhs.which_) {
+				rhs.accept(detail::variant::assigner{&union_storage_});
+			} else {
+				accept(detail::variant::destroyer{});
+				which_ = rhs.which_;
+				rhs.accept(detail::variant::copier{&union_storage_});
+			}
+			return *this;
 		}
 
 		template <typename F>
 		typename std::common_type<
 			typename std::result_of<F(Types)>::type...
-			>::type accept(F&& f) const {
+			>::type accept(F&& f) const& {
 			using result_type = typename std::common_type<
 				typename std::result_of<F(Types)>::type...
 				>::type;
@@ -128,14 +117,14 @@ namespace wart {
 				[](F&& f, union_storage<Types...> const& value) {
 					return std::forward<F>(f)(union_cast<Types, Types...>(value));
 				}...
-					};
+			};
 			return calls[which_](std::forward<F>(f), union_storage_);
 		}
 
 		template <typename F>
 		typename std::common_type<
 			typename std::result_of<F(Types)>::type...
-			>::type accept(F&& f) {
+			>::type accept(F&& f) & {
 			using result_type = typename std::common_type<
 				typename std::result_of<F(Types)>::type...
 				>::type;
@@ -144,11 +133,25 @@ namespace wart {
 				[](F&& f, union_storage<Types...>& value) {
 					return std::forward<F>(f)(union_cast<Types, Types...>(value));
 				}...
-					};
+			};
 			return calls[which_](std::forward<F>(f), union_storage_);
 		}
 
-		friend struct detail::variant::assignable<variant<Types...>>;
+		template <typename F>
+		typename std::common_type<
+			typename std::result_of<F(Types)>::type...
+			>::type accept(F&& f) && {
+			using result_type = typename std::common_type<
+				typename std::result_of<F(Types)>::type...
+				>::type;
+			using call = result_type (*)(F&& f, union_storage<Types...>&&);
+			static call calls[] {
+				[](F&& f, union_storage<Types...>&& value) {
+					return std::forward<F>(f)(std::move(union_cast<Types, Types...>(value)));
+				}...
+			};
+			return calls[which_](std::forward<F>(f), std::move(union_storage_));
+		}
 	};
 }
 

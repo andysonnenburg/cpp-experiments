@@ -55,6 +55,16 @@ struct print {
 	}
 };
 
+struct test {
+	test() = default;
+	test(test const&) {
+		std::cout << "copied" << std::endl;
+	}
+	test(test&&) {
+		std::cout << "moved" << std::endl;
+	}
+};
+
 struct print_visitor {
 	void operator()(std::string const& x) const {
 		std::cout << "string(" << x << ")" << std::endl;
@@ -65,21 +75,25 @@ struct print_visitor {
 	void operator()(double const& x) const {
 		std::cout << "double(" << x << ")" << std::endl;
 	}
+	void operator()(test const&) const {
+		std::cout << "test()" << std::endl;
+	}
+	void operator()(typename std::aligned_storage<4, 4>::type const&) const {
+		std::cout << "what" << std::endl;
+	}
 };
 
 int main() {
 	using namespace wart;
 
-	typedef union_storage<char, int> test;
-	std::cout << sizeof(test) << std::endl;
-
-	variant<std::string, int> value(1);
+	variant<std::string, int> value(std::string("hi"));
 	const print_visitor f{};
 	value.accept(f);
-	variant<std::string, int> other(value);
+	variant<std::string, int> other = value;
 	other.accept(f);
-	other = value;
 	other.accept(print_visitor());
+	variant<test> other2 = variant<test>(test());
+	other2.accept(print_visitor());
 
 	std::vector<int> xs { 1, 2, 3 };
 	for_each(xs, [](int x) {

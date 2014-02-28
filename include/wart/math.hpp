@@ -6,7 +6,7 @@
 namespace wart {
 	namespace math {
 		template <typename T>
-		constexpr T max(T const& lhs, T const& rhs) {
+		constexpr T const& max(T const& lhs, T const& rhs) {
 			return lhs > rhs? lhs : rhs;
 		}
 
