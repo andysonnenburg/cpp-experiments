@@ -91,6 +91,8 @@ struct print_visitor {
 int main() {
 	using namespace wart;
 
+	union_storage<int, double> i;
+
 	variant<std::string, int> value(std::string("hi"));
 	const print_visitor f{};
 	value.accept(f);

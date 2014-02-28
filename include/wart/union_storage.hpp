@@ -29,28 +29,30 @@ namespace wart {
 		 math::lcm_constant<std::size_t,
 		                    std::alignment_of<Types>::value...>::value>::type;
 
-
-	template <typename T, typename Type, typename... Types>
+	template <typename T, typename... Types>
 	inline
-	typename std::enable_if<
-		detail::union_storage::elem<T, Type, Types...>::value, T&
-		>::type union_cast(union_storage<Type, Types...>& value) {
-		return *static_cast<T*>(static_cast<void*>(&value));
-	}
-
-	template <typename T, typename Type, typename... Types>
-	inline
-	typename std::enable_if<
-		detail::union_storage::elem<T, Type, Types...>::value, T const&
-		>::type union_cast(union_storage<Type, Types...> const& value) {
+	T const& union_cast(union_storage<Types...> const& value) {
+		using namespace detail::union_storage;
+		static_assert(elem<T, Types...>::value,
+		              "template alias union_storage can only be safely casted to one of the template typanames Types");
 		return *static_cast<T const*>(static_cast<void const*>(&value));
 	}
 
-	template <typename T, typename Type, typename... Types>
+	template <typename T, typename... Types>
 	inline
-	typename std::enable_if<
-		detail::union_storage::elem<T, Type, Types...>::value, T&&
-		>::type union_cast(union_storage<Type, Types...>&& value) {
+	T& union_cast(union_storage<Types...>& value) {
+		using namespace detail::union_storage;
+		static_assert(elem<T, Types...>::value,
+		              "template alias union_storage can only be safely casted to one of the template typanames Types");
+		return *static_cast<T*>(static_cast<void*>(&value));
+	}
+
+	template <typename T, typename... Types>
+	inline
+	T&& union_cast(union_storage<Types...>&& value) {
+		using namespace detail::union_storage;
+		static_assert(elem<T, Types...>::value,
+		              "template alias union_storage can only be safely casted to one of the template typanames Types");
 		return std::forward<T>(*static_cast<T*>(static_cast<void*>(&value)));
 	}
 }
