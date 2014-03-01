@@ -7,8 +7,14 @@
 #include "math.hpp"
 
 namespace wart {
+	template <typename... T>
+	class variant;
+
 	namespace detail {
 		namespace variant {
+			template <typename... T>
+			using variant = wart::variant<T...>;
+
 			template <typename T>
 			using is_movable = typename std::integral_constant
 				<bool,
@@ -69,6 +75,14 @@ namespace wart {
 			using common_result_of =
 				std::common_type<typename std::result_of<F(ArgTypes)>::type...>;
 
+			struct destroy {
+				template <typename T>
+				void operator()(T&& value) {
+					using type = typename std::remove_reference<T>::type;
+					std::forward<T>(value).~type();
+				}
+			};
+
 			struct copy_construct {
 				void* storage;
 				template <typename T>
@@ -115,15 +129,15 @@ namespace wart {
 
 			template <typename... T>
 			struct copy_assign_reindex {
-				void* storage;
-				int& which;
+				variant<T...>& variant;
 				template <typename U>
 				void operator()(U const& value) {
-					if (which == elem_index<U, T...>::value) {
-						*static_cast<U*>(storage) = value;
+					if (variant.which_ == elem_index<U, T...>::value) {
+						*static_cast<U*>(static_cast<void*>(&variant.storage_)) = value;
 					} else {
-						new (storage) U(value);
-						which = elem_index<U, T...>::value;
+						variant.accept(destroy{});
+						new (&variant.storage_) U(value);
+						variant.which_ = elem_index<U, T...>::value;
 					}
 				}
 			};
@@ -138,24 +152,16 @@ namespace wart {
 
 			template <typename... T>
 			struct move_assign_reindex {
-				void* storage;
-				int& which;
+				variant<T...>& variant;
 				template <typename U>
 				typename enable_if_movable<U>::type operator()(U&& value) {
-					if (which == elem_index<U, T...>::value) {
-						*static_cast<U*>(storage) = std::move(value);
+					if (variant.which_ == elem_index<U, T...>::value) {
+						*static_cast<U*>(static_cast<void*>(&variant.storage_)) = std::move(value);
 					} else {
-						new (storage) U(std::move(value));
-						which = elem_index<U, T...>::value;
+						variant.accept(destroy{});
+						new (&variant.storage_) U(std::move(value));
+						variant.which_ = elem_index<U, T...>::value;
 					}
-				}
-			};
-
-			struct destroy {
-				template <typename T>
-				void operator()(T&& value) {
-					using type = typename std::remove_reference<T>::type;
-					std::forward<T>(value).~type();
 				}
 			};
 		}
@@ -237,7 +243,7 @@ namespace wart {
 			using namespace detail::variant;
 			static_assert(all<std::is_nothrow_copy_constructible<T>::value...>::value,
 			              "all template arguments T must be nothrow copy constructible in class template variant");
-			rhs.accept(copy_assign_reindex<T...>{&storage_, which_});
+			rhs.accept(copy_assign_reindex<T...>{*this});
 			return *this;
 		}
 
@@ -263,7 +269,7 @@ namespace wart {
 			using namespace detail::variant;
 			static_assert(all<std::is_nothrow_copy_constructible<T>::value...>::value,
 			              "all template arguments T must be nothrow copy constructible in class template variant");
-			std::move(rhs).accept(move_assign_reindex<T...>{&storage_, which_});
+			std::move(rhs).accept(move_assign_reindex<T...>{*this});
 			return *this;
 		}
 
@@ -302,6 +308,12 @@ namespace wart {
 			};
 			return calls[which_](std::forward<F>(f), std::move(storage_));
 		}
+
+		friend
+		struct detail::variant::copy_assign_reindex<T...>;
+
+		friend
+		struct detail::variant::move_assign_reindex<T...>;
 	};
 }
 

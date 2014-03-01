@@ -3,7 +3,7 @@ project(cpp-experiments)
 enable_testing()
 
 set(CMAKE_CXX_COMPILER "clang++")
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -pedantic -std=c++11 -fno-elide-constructors")
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -pedantic -std=c++11")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")

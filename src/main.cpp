@@ -109,16 +109,15 @@ int main() {
 
 	variant<int, double> value{1};
 	variant<double, int> with_double{1.0};
-	with_double = value;
 	value = with_double;
-	variant<int> without_double = with_double;
 	const print_visitor f{};
 	value.accept(f);
 	with_double.accept(f);
 	variant<int, double> other = value;
 	other.accept(f);
 	other.accept(print_visitor());
-	variant<test> other2 = variant<test>(test());
+	variant<test, double> other2 = variant<test>(test());
+	variant<test, double, int> other3 = other2;
 	other2.accept(print_visitor());
 	other2 = variant<test>(test());
 
