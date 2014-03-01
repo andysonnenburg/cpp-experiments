@@ -7,7 +7,6 @@
 #include "wart/for_each/container.hpp"
 #include "wart/for_each/tuple.hpp"
 #include "wart/math.hpp"
-#include "wart/union_storage.hpp"
 #include "wart/variant.hpp"
 
 struct person {
@@ -88,15 +87,35 @@ struct print_visitor {
 	}
 };
 
+struct sfinae_test {
+	sfinae_test() {}
+	sfinae_test(sfinae_test&) {
+		std::cout << "meh" << std::endl;
+	}
+	sfinae_test(sfinae_test const&) {
+		std::cout << "yay" << std::endl;
+	}
+	template <typename T>
+	sfinae_test(T&&) {
+		std::cout << "boo" << std::endl;
+	}
+};
+
 int main() {
 	using namespace wart;
 
-	union_storage<int, double> i;
+	sfinae_test x;
+	auto y = x;
 
-	variant<std::string, int> value(std::string("hi"));
+	variant<int, double> value{1};
+	variant<double, int> with_double{1.0};
+	with_double = value;
+	value = with_double;
+	variant<int> without_double = with_double;
 	const print_visitor f{};
 	value.accept(f);
-	variant<std::string, int> other = value;
+	with_double.accept(f);
+	variant<int, double> other = value;
 	other.accept(f);
 	other.accept(print_visitor());
 	variant<test> other2 = variant<test>(test());
