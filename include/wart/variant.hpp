@@ -276,7 +276,7 @@ namespace wart {
 		template <typename F>
 		result_of_t<F> accept(F&& f) const& {
 			using namespace detail::variant;
-			using call = result_of_t<F> (*)(F&& f, union_storage_t<T...> const&);
+			using call = result_of_t<F&&> (*)(F&& f, union_storage_t<T...> const&);
 			static call calls[] {
 				[](F&& f, union_storage_t<T...> const& value) {
 					return std::forward<F>(f)(*static_cast<T const*>(static_cast<void const*>(&value)));
@@ -288,7 +288,7 @@ namespace wart {
 		template <typename F>
 		result_of_t<F> accept(F&& f) & {
 			using namespace detail::variant;
-			using call = result_of_t<F> (*)(F&& f, union_storage_t<T...>&);
+			using call = result_of_t<F&&> (*)(F&& f, union_storage_t<T...>&);
 			static call calls[] {
 				[](F&& f, union_storage_t<T...>& value) {
 					return std::forward<F>(f)(*static_cast<T*>(static_cast<void*>(&value)));

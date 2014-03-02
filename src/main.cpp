@@ -104,9 +104,6 @@ struct sfinae_test {
 int main() {
 	using namespace wart;
 
-	sfinae_test x;
-	auto y = x;
-
 	variant<int, double> value{1};
 	variant<double, int> with_double{1.0};
 	value = with_double;
@@ -120,6 +117,12 @@ int main() {
 	variant<test, double, int> other3 = other2;
 	other2.accept(print_visitor());
 	other2 = variant<test>(test());
+
+	// variant<int> x(1);
+	// variant<int> y(2);
+	// accept(x, y, [](int x, int y) {
+	//		std::cout << x << " " << y << std::endl;
+	//	});
 
 	std::vector<int> xs { 1, 2, 3 };
 	for_each(xs, [](int x) {
