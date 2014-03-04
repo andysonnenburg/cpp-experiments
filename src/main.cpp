@@ -54,6 +54,8 @@ struct print {
 	}
 };
 
+// constexpr wart::variant<int> i(1);
+
 struct test {
 	test() = default;
 	test(test const&) noexcept {
