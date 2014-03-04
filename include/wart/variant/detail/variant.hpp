@@ -128,7 +128,6 @@ struct not_trivially_destructible {
 
 template <typename... T>
 class variant:
-		public
 		std::conditional<all<std::is_trivially_destructible<T>::value...>::value,
 		                 trivially_destructible,
 		                 not_trivially_destructible<variant<T...>>>::type {
@@ -265,6 +264,9 @@ public:
 
 	friend
 	struct move_assign_reindex<T...>;
+
+	friend
+	struct not_trivially_destructible<variant<T...>>;
 };
 
 }}}
