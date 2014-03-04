@@ -73,6 +73,9 @@ struct test {
 		std::cout << "move-assigned" << std::endl;
 		return *this;
 	}
+	~test() {
+		std::cout << "destroyed" << std::endl;
+	}
 };
 
 struct print_visitor {

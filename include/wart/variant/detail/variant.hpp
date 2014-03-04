@@ -1,10 +1,10 @@
 #ifndef WART_VARIANT_DETAIL_VARIANT_HPP
 #define WART_VARIANT_DETAIL_VARIANT_HPP
 
-#include "all.hpp"
 #include "enable_if_elem.hpp"
 #include "elem_index.hpp"
 
+#include "../../all.hpp"
 #include "../../enable_if_move_constructible.hpp"
 #include "../../union.hpp"
 
@@ -117,8 +117,21 @@ struct move_assign_reindex {
 	}
 };
 
+struct trivially_destructible {};
+
+template <typename Variant>
+struct not_trivially_destructible {
+	~not_trivially_destructible() {
+		static_cast<Variant*>(this)->accept(destroy{});
+	}
+};
+
 template <typename... T>
-class variant {
+class variant:
+		public
+		std::conditional<all<std::is_trivially_destructible<T>::value...>::value,
+		                 trivially_destructible,
+		                 not_trivially_destructible<variant<T...>>>::type {
 	int tag_;
 	union_t<uninitialized, T...> union_;
 
@@ -165,10 +178,6 @@ public:
 	        all<elem<U, T...>::value...>::value
 	        >::type* = nullptr):
 		tag_{std::move(rhs).accept(move_construct_index<T...>{&union_})} {}
-
-	~variant() {
-		accept(destroy{});
-	}
 
 	variant& operator=(variant const& rhs) & {
 		static_assert(all<std::is_nothrow_copy_constructible<T>::value...>::value,

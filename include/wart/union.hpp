@@ -3,10 +3,17 @@
 
 #include "union/detail/union.hpp"
 
+#include "all.hpp"
+
+#include <type_traits>
+
 namespace wart {
 
 template <typename... T>
-using union_t = detail::union_t::union_t<T...>;
+using union_t =
+	detail::union_t::union_t<
+	all<std::is_trivially_destructible<T>::value...>::value,
+	T...>;
 
 template <typename Elem, typename... T>
 constexpr Elem& union_get(union_t<T...>& value) {
