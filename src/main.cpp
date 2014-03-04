@@ -7,6 +7,7 @@
 #include "wart/for_each/container.hpp"
 #include "wart/for_each/tuple.hpp"
 #include "wart/math.hpp"
+#include "wart/union.hpp"
 #include "wart/variant.hpp"
 
 struct person {
@@ -54,7 +55,7 @@ struct print {
 	}
 };
 
-// constexpr wart::variant<int> i(1);
+constexpr wart::variant<int> i(1);
 
 struct test {
 	test() = default;
@@ -105,6 +106,11 @@ struct sfinae_test {
 
 int main() {
 	using namespace wart;
+
+	const union_t<int, char, double> x(2.1);
+	double const& i = union_get<double>(x);
+	std::cout << i << std::endl;
+	std::cout << union_get<double>(union_t<int, double>(2.1)) << std::endl;
 
 	variant<int, double> value{1};
 	variant<double, int> with_double{1.0};

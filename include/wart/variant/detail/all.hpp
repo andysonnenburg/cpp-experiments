@@ -5,17 +5,17 @@
 
 namespace wart { namespace detail { namespace variant {
 
-template <bool... List>
+template <bool...>
 struct all;
 
 template <>
 struct all<>: std::true_type {};
 
 template <bool... Tail>
-struct all<true, Tail...>: all<Tail...>::type {};
+struct all<false, Tail...>: std::false_type {};
 
 template <bool... Tail>
-struct all<false, Tail...>: std::false_type {};
+struct all<true, Tail...>: all<Tail...>::type {};
 
 }}}
 

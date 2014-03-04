@@ -2,10 +2,11 @@
 #define WART_VARIANT_DETAIL_VARIANT_HPP
 
 #include "all.hpp"
-#include "enable_if_move_constructible.hpp"
 #include "enable_if_elem.hpp"
 #include "elem_index.hpp"
-#include "union_storage.hpp"
+
+#include "../../enable_if_move_constructible.hpp"
+#include "../../union.hpp"
 
 #include <type_traits>
 #include <utility>
@@ -13,7 +14,12 @@
 namespace wart { namespace detail { namespace variant {
 
 template <typename... T>
+using union_t = wart::union_t<T...>;
+
+template <typename... T>
 class variant;
+
+class uninitialized {};
 
 template <typename F, typename... ArgTypes>
 using common_result_of =
@@ -63,11 +69,12 @@ struct move_construct_index {
 	}
 };
 
+template <typename... T>
 struct copy_assign {
-	void* storage;
-	template <typename T>
-	void operator()(T const& value) {
-		*static_cast<T*>(storage) = value;
+	union_t<uninitialized, T...> union_;
+	template <typename U>
+	void operator()(U const& value) {
+		union_get<U>(union_) = value;
 	}
 };
 
@@ -76,21 +83,22 @@ struct copy_assign_reindex {
 	variant<T...>& variant;
 	template <typename U>
 	void operator()(U const& value) {
-		if (variant.which_ == elem_index<U, T...>::value) {
-			*static_cast<U*>(static_cast<void*>(&variant.storage_)) = value;
+		if (variant.tag_ == elem_index<U, T...>::value) {
+			union_get<U>(variant.union_) = value;
 		} else {
 			variant.accept(destroy{});
-			new (&variant.storage_) U(value);
-			variant.which_ = elem_index<U, T...>::value;
+			new (&variant.union_) U(value);
+			variant.tag_ = elem_index<U, T...>::value;
 		}
 	}
 };
 
+template <typename... T>
 struct move_assign {
-	void* storage;
-	template <typename T>
-	typename enable_if_move_constructible<T>::type operator()(T&& value) {
-		*static_cast<T*>(storage) = std::move(value);
+	union_t<uninitialized, T...> union_;
+	template <typename U>
+	typename enable_if_move_constructible<U>::type operator()(U&& value) {
+		union_get<U>(union_) = std::move(value);
 	}
 };
 
@@ -99,20 +107,20 @@ struct move_assign_reindex {
 	variant<T...>& variant;
 	template <typename U>
 	typename enable_if_move_constructible<U>::type operator()(U&& value) {
-		if (variant.which_ == elem_index<U, T...>::value) {
-			*static_cast<U*>(static_cast<void*>(&variant.storage_)) = std::move(value);
+		if (variant.tag_ == elem_index<U, T...>::value) {
+			union_get<U>(variant.union_) = std::move(value);
 		} else {
 			variant.accept(destroy{});
-			new (&variant.storage_) U(std::move(value));
-			variant.which_ = elem_index<U, T...>::value;
+			new (&variant.union_) U(std::move(value));
+			variant.tag_ = elem_index<U, T...>::value;
 		}
 	}
 };
 
 template <typename... T>
 class variant {
-	int which_;
-	union_storage_t<T...> storage_;
+	int tag_;
+	union_t<uninitialized, T...> union_;
 
 public:
 	template <typename F>
@@ -121,34 +129,34 @@ public:
 	using result_of_t = typename result_of<F>::type;
 
 	template <typename U>
+	constexpr
 	variant(U const& value,
 	        typename enable_if_elem<U, T...>::type* = nullptr):
-		which_{elem_index<U, T...>::value} {
-		new (&storage_) U(value);
-	}
+		tag_{elem_index<U, T...>::value},
+		union_{value} {}
 
 	template <typename U>
+	constexpr
 	variant(U&& value,
 	        typename enable_if_elem<U, T...>::type* = nullptr,
 	        typename enable_if_move_constructible<U>::type* = nullptr):
-		which_{elem_index<U, T...>::value} {
-		new (&storage_) U(std::move(value));
-	}
+		tag_{elem_index<U, T...>::value},
+		union_{std::move(value)} {}
 
 	variant(variant const& rhs):
-		which_{rhs.which_} {
-		rhs.accept(copy_construct{&storage_});
+		tag_{rhs.tag_} {
+		rhs.accept(copy_construct{&union_});
 	}
 
 	template <typename... U>
 	variant(variant<U...> const& rhs,
 	        typename std::enable_if<all<elem<U, T...>::value...>::value
 	        >::type* = nullptr):
-		which_{rhs.accept(copy_construct_index<T...>{&storage_})} {}
+		tag_{rhs.accept(copy_construct_index<T...>{&union_})} {}
 
 	variant(variant&& rhs):
-		which_{rhs.which_} {
-		std::move(rhs).accept(move_construct{&storage_});
+		tag_{rhs.tag_} {
+		std::move(rhs).accept(move_construct{&union_});
 	}
 
 	template <typename... U>
@@ -156,7 +164,7 @@ public:
 	        typename std::enable_if<
 	        all<elem<U, T...>::value...>::value
 	        >::type* = nullptr):
-		which_{std::move(rhs).accept(move_construct_index<T...>{&storage_})} {}
+		tag_{std::move(rhs).accept(move_construct_index<T...>{&union_})} {}
 
 	~variant() {
 		accept(destroy{});
@@ -168,12 +176,12 @@ public:
 		if (this == &rhs) {
 			return *this;
 		}
-		if (which_ == rhs.which_) {
-			rhs.accept(copy_assign{&storage_});
+		if (tag_ == rhs.tag_) {
+			rhs.accept(copy_assign<T...>{union_});
 		} else {
 			accept(destroy{});
-			rhs.accept(copy_construct{&storage_});
-			which_ = rhs.which_;
+			rhs.accept(copy_construct{&union_});
+			tag_ = rhs.tag_;
 		}
 		return *this;
 	}
@@ -192,12 +200,12 @@ public:
 		if (this == &rhs) {
 			return *this;
 		}
-		if (which_ == rhs.which_) {
-			std::move(rhs).accept(move_assign{&storage_});
+		if (tag_ == rhs.tag_) {
+			std::move(rhs).accept(move_assign<T...>{union_});
 		} else {
 			accept(destroy{});
-			std::move(rhs).accept(move_construct{&storage_});
-			which_ = rhs.which_;
+			std::move(rhs).accept(move_construct{&union_});
+			tag_ = rhs.tag_;
 		}
 		return *this;
 	}
@@ -212,35 +220,35 @@ public:
 
 	template <typename F>
 	result_of_t<F> accept(F&& f) const& {
-		using call = result_of_t<F&&> (*)(F&& f, union_storage_t<T...> const&);
+		using call = result_of_t<F&&> (*)(F&& f, union_t<uninitialized, T...> const&);
 		static call calls[] {
-			[](F&& f, union_storage_t<T...> const& value) {
-				return std::forward<F>(f)(*static_cast<T const*>(static_cast<void const*>(&value)));
+			[](F&& f, union_t<uninitialized, T...> const& value) {
+				return std::forward<F>(f)(union_get<T>(value));
 			}...
 		};
-		return calls[which_](std::forward<F>(f), storage_);
+		return calls[tag_](std::forward<F>(f), union_);
 	}
 
 	template <typename F>
 	result_of_t<F> accept(F&& f) & {
-		using call = result_of_t<F&&> (*)(F&& f, union_storage_t<T...>&);
+		using call = result_of_t<F&&> (*)(F&& f, union_t<uninitialized, T...>&);
 		static call calls[] {
-			[](F&& f, union_storage_t<T...>& value) {
-				return std::forward<F>(f)(*static_cast<T*>(static_cast<void*>(&value)));
+			[](F&& f, union_t<uninitialized, T...>& value) {
+				return std::forward<F>(f)(union_get<T>(value));
 			}...
 		};
-		return calls[which_](std::forward<F>(f), storage_);
+		return calls[tag_](std::forward<F>(f), union_);
 	}
 
 	template <typename F>
 	result_of_t<F> accept(F&& f) && {
-		using call = result_of_t<F> (*)(F&& f, union_storage_t<T...>&&);
+		using call = result_of_t<F> (*)(F&& f, union_t<uninitialized, T...>&&);
 		static call calls[] {
-			[](F&& f, union_storage_t<T...>&& value) {
-				return std::forward<F>(f)(std::move(*static_cast<T*>(static_cast<void*>(&value))));
+			[](F&& f, union_t<uninitialized, T...>&& value) {
+				return std::forward<F>(f)(std::move(union_get<T>(value)));
 			}...
 		};
-		return calls[which_](std::forward<F>(f), std::move(storage_));
+		return calls[tag_](std::forward<F>(f), std::move(union_));
 	}
 
 	friend

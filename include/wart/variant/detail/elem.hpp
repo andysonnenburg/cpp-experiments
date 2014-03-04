@@ -5,7 +5,7 @@
 
 namespace wart { namespace detail { namespace variant {
 
-template <typename Elem, typename... List>
+template <typename, typename...>
 struct elem;
 
 template <typename Head, typename... Tail>
