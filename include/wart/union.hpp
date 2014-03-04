@@ -16,18 +16,18 @@ using union_t =
 	T...>;
 
 template <typename Elem, typename... T>
-constexpr Elem& union_get(union_t<T...>& value) {
-	return detail::union_t::get<Elem, T...>::call(value);
+constexpr Elem& union_cast(union_t<T...>& value) {
+	return detail::union_t::cast<Elem, T...>::call(value);
 }
 
 template <typename Elem, typename... T>
-constexpr Elem const& union_get(union_t<T...> const& value) {
-	return detail::union_t::get<Elem, T...>::call(value);
+constexpr Elem const& union_cast(union_t<T...> const& value) {
+	return detail::union_t::cast<Elem, T...>::call(value);
 }
 
 template <typename Elem, typename... T>
-constexpr Elem&& union_get(union_t<T...>&& value) {
-	return detail::union_t::get<Elem, T...>::call(std::move(value));
+constexpr Elem&& union_cast(union_t<T...>&& value) {
+	return detail::union_t::cast<Elem, T...>::call(std::move(value));
 }
 
 }

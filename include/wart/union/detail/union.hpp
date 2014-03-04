@@ -96,10 +96,10 @@ union union_t<false, Head, Tail...> {
 };
 
 template <typename, typename...>
-struct get;
+struct cast;
 
 template <typename Head, typename... Tail>
-struct get<Head, Head, Tail...> {
+struct cast<Head, Head, Tail...> {
 	template <bool B>
 	static constexpr Head& call(union_t<B, Head, Tail...>& value) {
 		return value.head_;
@@ -117,20 +117,20 @@ struct get<Head, Head, Tail...> {
 };
 
 template <typename Elem, typename Head, typename... Tail>
-struct get<Elem, Head, Tail...> {
+struct cast<Elem, Head, Tail...> {
 	template <bool B>
 	static constexpr Elem& call(union_t<B, Head, Tail...>& value) {
-		return get<Elem, Tail...>::call(value.tail_);
+		return cast<Elem, Tail...>::call(value.tail_);
 	}
 
 	template <bool B>
 	static constexpr Elem const& call(union_t<B, Head, Tail...> const& value) {
-		return get<Elem, Tail...>::call(value.tail_);
+		return cast<Elem, Tail...>::call(value.tail_);
 	}
 
 	template <bool B>
 	static constexpr Elem&& call(union_t<B, Head, Tail...>&& value) {
-		return get<Elem, Tail...>::call(std::move(value).tail_);
+		return cast<Elem, Tail...>::call(std::move(value).tail_);
 	}
 };
 

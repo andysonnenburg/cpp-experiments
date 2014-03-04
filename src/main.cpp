@@ -111,9 +111,9 @@ int main() {
 	using namespace wart;
 
 	const union_t<int, char, double> x(2.1);
-	double const& i = union_get<double>(x);
+	double const& i = union_cast<double>(x);
 	std::cout << i << std::endl;
-	std::cout << union_get<double>(union_t<int, double>(2.1)) << std::endl;
+	std::cout << union_cast<double>(union_t<int, double>(2.1)) << std::endl;
 
 	variant<int, double> value{1};
 	variant<double, int> with_double{1.0};

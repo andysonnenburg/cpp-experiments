@@ -74,21 +74,21 @@ struct copy_assign {
 	union_t<uninitialized, T...> union_;
 	template <typename U>
 	void operator()(U const& value) {
-		union_get<U>(union_) = value;
+		union_cast<U>(union_) = value;
 	}
 };
 
 template <typename... T>
 struct copy_assign_reindex {
-	variant<T...>& variant;
+	variant<T...>& variant_;
 	template <typename U>
 	void operator()(U const& value) {
-		if (variant.tag_ == elem_index<U, T...>::value) {
-			union_get<U>(variant.union_) = value;
+		if (variant_.tag_ == elem_index<U, T...>::value) {
+			union_cast<U>(variant_.union_) = value;
 		} else {
-			variant.accept(destroy{});
-			new (&variant.union_) U(value);
-			variant.tag_ = elem_index<U, T...>::value;
+			variant_.accept(destroy{});
+			new (&variant_.union_) U(value);
+			variant_.tag_ = elem_index<U, T...>::value;
 		}
 	}
 };
@@ -98,21 +98,21 @@ struct move_assign {
 	union_t<uninitialized, T...> union_;
 	template <typename U>
 	typename enable_if_move_constructible<U>::type operator()(U&& value) {
-		union_get<U>(union_) = std::move(value);
+		union_cast<U>(union_) = std::move(value);
 	}
 };
 
 template <typename... T>
 struct move_assign_reindex {
-	variant<T...>& variant;
+	variant<T...>& variant_;
 	template <typename U>
 	typename enable_if_move_constructible<U>::type operator()(U&& value) {
-		if (variant.tag_ == elem_index<U, T...>::value) {
-			union_get<U>(variant.union_) = std::move(value);
+		if (variant_.tag_ == elem_index<U, T...>::value) {
+			union_cast<U>(variant_.union_) = std::move(value);
 		} else {
-			variant.accept(destroy{});
-			new (&variant.union_) U(std::move(value));
-			variant.tag_ = elem_index<U, T...>::value;
+			variant_.accept(destroy{});
+			new (&variant_.union_) U(std::move(value));
+			variant_.tag_ = elem_index<U, T...>::value;
 		}
 	}
 };
@@ -231,7 +231,7 @@ public:
 		using call = result_of_t<F&&> (*)(F&& f, union_t<uninitialized, T...> const&);
 		static call calls[] {
 			[](F&& f, union_t<uninitialized, T...> const& value) {
-				return std::forward<F>(f)(union_get<T>(value));
+				return std::forward<F>(f)(union_cast<T>(value));
 			}...
 		};
 		return calls[tag_](std::forward<F>(f), union_);
@@ -242,7 +242,7 @@ public:
 		using call = result_of_t<F&&> (*)(F&& f, union_t<uninitialized, T...>&);
 		static call calls[] {
 			[](F&& f, union_t<uninitialized, T...>& value) {
-				return std::forward<F>(f)(union_get<T>(value));
+				return std::forward<F>(f)(union_cast<T>(value));
 			}...
 		};
 		return calls[tag_](std::forward<F>(f), union_);
@@ -253,7 +253,7 @@ public:
 		using call = result_of_t<F> (*)(F&& f, union_t<uninitialized, T...>&&);
 		static call calls[] {
 			[](F&& f, union_t<uninitialized, T...>&& value) {
-				return std::forward<F>(f)(std::move(union_get<T>(value)));
+				return std::forward<F>(f)(std::move(union_cast<T>(value)));
 			}...
 		};
 		return calls[tag_](std::forward<F>(f), std::move(union_));
