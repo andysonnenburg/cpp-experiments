@@ -118,20 +118,27 @@ struct move_assign_retag {
 	}
 };
 
-struct trivially_destructible {};
+template <bool TriviallyDestructible, typename... T>
+struct trivially_destructible;
 
-template <typename Variant>
-struct not_trivially_destructible {
-	~not_trivially_destructible() {
-		static_cast<Variant*>(this)->accept(destroy{});
+template <typename... T>
+struct trivially_destructible<true, T...> {};
+
+template <typename... T>
+struct trivially_destructible<false, T...> {
+	~trivially_destructible() {
+		static_cast<variant<T...>*>(this)->accept(destroy{});
 	}
 };
 
 template <typename... T>
-class variant:
-	std::conditional<all<std::is_trivially_destructible<T>::value...>::value,
-	                 trivially_destructible,
-	                 not_trivially_destructible<variant<T...>>>::type {
+using destructible =
+	trivially_destructible<
+	all<std::is_trivially_destructible<T>::value...>::value,
+	T...>;
+
+template <typename... T>
+class variant: destructible<T...> {
 	int tag_;
 	union_t<uninitialized, T...> union_;
 
@@ -267,7 +274,7 @@ public:
 	struct move_assign_retag<T...>;
 
 	friend
-	struct not_trivially_destructible<variant<T...>>;
+	destructible<T...>;
 };
 
 }}}
