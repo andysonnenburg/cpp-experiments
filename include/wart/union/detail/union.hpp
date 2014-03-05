@@ -36,8 +36,10 @@ public:
 
 template <typename T>
 union union_t<false, T> {
+private:
 	T head_;
 
+public:
 	constexpr union_t():
 		head_() {}
 
@@ -86,11 +88,13 @@ public:
 
 template <typename Head, typename... Tail>
 union union_t<false, Head, Tail...> {
+private:
 	Head head_;
 	union_t<
 		all<std::is_trivially_destructible<Tail>::value...>::value,
 		Tail...> tail_;
 
+public:
 	constexpr union_t():
 		head_() {}
 
