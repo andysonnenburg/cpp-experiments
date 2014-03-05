@@ -7,6 +7,7 @@
 #include "wart/for_each/container.hpp"
 #include "wart/for_each/tuple.hpp"
 #include "wart/math.hpp"
+#include "wart/syntax.hpp"
 #include "wart/union.hpp"
 #include "wart/variant.hpp"
 
@@ -110,6 +111,10 @@ struct sfinae_test {
 int main() {
 	using namespace wart;
 
+	Var var_x("x");
+	Var var_y("y");
+	App app(std::move(var_x), std::move(var_y));
+
 	const union_t<int, char, double> x(2.1);
 	double const& i = union_cast<double>(x);
 	std::cout << i << std::endl;
@@ -121,7 +126,7 @@ int main() {
 	const print_visitor f{};
 	value.accept(f);
 	with_double.accept(f);
-	variant<int, double> other = value;
+	const variant<int, double> other = value;
 	other.accept(f);
 	other.accept(print_visitor());
 	variant<test, double> other2 = variant<test>(test());

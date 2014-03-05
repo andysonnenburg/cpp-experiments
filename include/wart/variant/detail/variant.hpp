@@ -126,7 +126,14 @@ struct trivially_destructible<true, T...> {};
 template <typename... T>
 struct trivially_destructible<false, T...> {
 	~trivially_destructible() {
-		static_cast<variant<T...>*>(this)->accept(destroy{});
+		struct {
+			template <typename U>
+			void operator()(U&& value) {
+				using type = typename std::remove_reference<U>::type;
+				std::forward<U>(value).~type();
+			}
+		} destroy;
+		static_cast<variant<T...>*>(this)->accept(destroy);
 	}
 };
 

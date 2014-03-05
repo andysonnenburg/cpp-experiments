@@ -16,16 +16,19 @@ using union_t =
 	T...>;
 
 template <typename Elem, typename... T>
+inline
 constexpr Elem& union_cast(union_t<T...>& value) {
 	return detail::union_t::union_cast<Elem, T...>::call(value);
 }
 
 template <typename Elem, typename... T>
+inline
 constexpr Elem const& union_cast(union_t<T...> const& value) {
 	return detail::union_t::union_cast<Elem, T...>::call(value);
 }
 
 template <typename Elem, typename... T>
+inline
 constexpr Elem&& union_cast(union_t<T...>&& value) {
 	return detail::union_t::union_cast<Elem, T...>::call(std::move(value));
 }

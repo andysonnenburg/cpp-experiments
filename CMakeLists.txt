@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 2.6)
 set(PROJECT_NAME cpp-experiments)
 project("${PROJECT_NAME}")
 
+find_package(BISON REQUIRED)
+find_package(FLEX REQUIRED)
+
 enable_testing()
 find_package(GTest REQUIRED)
 
