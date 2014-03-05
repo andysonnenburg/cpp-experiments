@@ -13,8 +13,7 @@
 
 namespace wart { namespace detail { namespace variant {
 
-template <typename... T>
-using union_t = wart::union_t<T...>;
+using wart::union_t;
 
 template <typename... T>
 class variant;
