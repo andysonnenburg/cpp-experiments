@@ -33,38 +33,39 @@ struct destroy {
 	}
 };
 
+template <typename... T>
 struct copy_construct {
-	void* storage;
-	template <typename T>
-	void operator()(T const& value) {
-		new (storage) T(value);
+	union_t<uninitialized, T...>& union_;
+	template <typename U>
+	void operator()(U const& value) {new (&union_cast<U>(union_)) U(value);
 	}
 };
 
 template <typename... T>
 struct copy_construct_index {
-	void* storage;
+	union_t<uninitialized, T...>& union_;
 	template <typename U>
 	int operator()(U const& value) {
-		new (storage) U(value);
+		new (&union_cast<U>(union_)) U(value);
 		return elem_index<U, T...>::value;
 	}
 };
 
+template <typename... T>
 struct move_construct {
-	void* storage;
-	template <typename T>
-	typename enable_if_move_constructible<T>::type operator()(T&& value) {
-		new (storage) T(std::move(value));
+	union_t<uninitialized, T...>& union_;
+	template <typename U>
+	typename enable_if_move_constructible<U>::type operator()(U&& value) {
+		new (&union_cast<U>(union_)) U(std::move(value));
 	}
 };
 
 template <typename... T>
 struct move_construct_index {
-	void* storage;
+	union_t<uninitialized, T...>& union_;
 	template <typename U>
 	typename enable_if_move_constructible<U, int>::type operator()(U&& value) {
-		new (storage) U(std::move(value));
+		new (&union_cast<U>(union_)) U(std::move(value));
 		return elem_index<U, T...>::value;
 	}
 };
@@ -79,16 +80,16 @@ struct copy_assign {
 };
 
 template <typename... T>
-struct copy_assign_reindex {
-	variant<T...>& variant_;
+struct copy_assign_retag {
+	variant<T...>* this_;
 	template <typename U>
 	void operator()(U const& value) {
-		if (variant_.tag_ == elem_index<U, T...>::value) {
-			union_cast<U>(variant_.union_) = value;
+		if (this_->tag_ == elem_index<U, T...>::value) {
+			union_cast<U>(this_->union_) = value;
 		} else {
-			variant_.accept(destroy{});
-			new (&variant_.union_) U(value);
-			variant_.tag_ = elem_index<U, T...>::value;
+			this_->accept(destroy{});
+			new (&this_->union_) U(value);
+			this_->tag_ = elem_index<U, T...>::value;
 		}
 	}
 };
@@ -103,16 +104,16 @@ struct move_assign {
 };
 
 template <typename... T>
-struct move_assign_reindex {
-	variant<T...>& variant_;
+struct move_assign_retag {
+	variant<T...>* this_;
 	template <typename U>
 	typename enable_if_move_constructible<U>::type operator()(U&& value) {
-		if (variant_.tag_ == elem_index<U, T...>::value) {
-			union_cast<U>(variant_.union_) = std::move(value);
+		if (this_->tag_ == elem_index<U, T...>::value) {
+			union_cast<U>(this_->union_) = std::move(value);
 		} else {
-			variant_.accept(destroy{});
-			new (&variant_.union_) U(std::move(value));
-			variant_.tag_ = elem_index<U, T...>::value;
+			this_->accept(destroy{});
+			new (&this_->union_) U(std::move(value));
+			this_->tag_ = elem_index<U, T...>::value;
 		}
 	}
 };
@@ -128,9 +129,9 @@ struct not_trivially_destructible {
 
 template <typename... T>
 class variant:
-		std::conditional<all<std::is_trivially_destructible<T>::value...>::value,
-		                 trivially_destructible,
-		                 not_trivially_destructible<variant<T...>>>::type {
+	std::conditional<all<std::is_trivially_destructible<T>::value...>::value,
+	                 trivially_destructible,
+	                 not_trivially_destructible<variant<T...>>>::type {
 	int tag_;
 	union_t<uninitialized, T...> union_;
 
@@ -157,18 +158,18 @@ public:
 
 	variant(variant const& rhs):
 		tag_{rhs.tag_} {
-		rhs.accept(copy_construct{&union_});
+		rhs.accept(copy_construct<T...>{union_});
 	}
 
 	template <typename... U>
 	variant(variant<U...> const& rhs,
 	        typename std::enable_if<all<elem<U, T...>::value...>::value
 	        >::type* = nullptr):
-		tag_{rhs.accept(copy_construct_index<T...>{&union_})} {}
+		tag_{rhs.accept(copy_construct_index<T...>{union_})} {}
 
 	variant(variant&& rhs):
 		tag_{rhs.tag_} {
-		std::move(rhs).accept(move_construct{&union_});
+		std::move(rhs).accept(move_construct<T...>{union_});
 	}
 
 	template <typename... U>
@@ -176,7 +177,7 @@ public:
 	        typename std::enable_if<
 	        all<elem<U, T...>::value...>::value
 	        >::type* = nullptr):
-		tag_{std::move(rhs).accept(move_construct_index<T...>{&union_})} {}
+		tag_{std::move(rhs).accept(move_construct_index<T...>{union_})} {}
 
 	variant& operator=(variant const& rhs) & {
 		static_assert(all<std::is_nothrow_copy_constructible<T>::value...>::value,
@@ -188,7 +189,7 @@ public:
 			rhs.accept(copy_assign<T...>{union_});
 		} else {
 			accept(destroy{});
-			rhs.accept(copy_construct{&union_});
+			rhs.accept(copy_construct<T...>{union_});
 			tag_ = rhs.tag_;
 		}
 		return *this;
@@ -198,7 +199,7 @@ public:
 	variant& operator=(variant<U...> const& rhs) & {
 		static_assert(all<std::is_nothrow_copy_constructible<T>::value...>::value,
 		              "all template arguments T must be nothrow copy constructible in class template variant");
-		rhs.accept(copy_assign_reindex<T...>{*this});
+		rhs.accept(copy_assign_retag<T...>{this});
 		return *this;
 	}
 
@@ -212,7 +213,7 @@ public:
 			std::move(rhs).accept(move_assign<T...>{union_});
 		} else {
 			accept(destroy{});
-			std::move(rhs).accept(move_construct{&union_});
+			std::move(rhs).accept(move_construct<T...>{union_});
 			tag_ = rhs.tag_;
 		}
 		return *this;
@@ -222,7 +223,7 @@ public:
 	variant& operator=(variant<U...>&& rhs) & {
 		static_assert(all<std::is_nothrow_copy_constructible<T>::value...>::value,
 		              "all template arguments T must be nothrow copy constructible in class template variant");
-		std::move(rhs).accept(move_assign_reindex<T...>{*this});
+		std::move(rhs).accept(move_assign_retag<T...>{this});
 		return *this;
 	}
 
@@ -260,10 +261,10 @@ public:
 	}
 
 	friend
-	struct copy_assign_reindex<T...>;
+	struct copy_assign_retag<T...>;
 
 	friend
-	struct move_assign_reindex<T...>;
+	struct move_assign_retag<T...>;
 
 	friend
 	struct not_trivially_destructible<variant<T...>>;
