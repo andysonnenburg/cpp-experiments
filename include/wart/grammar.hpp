@@ -54,7 +54,7 @@ struct grammar: boost::spirit::qi::grammar<Iterator,
 
 	boost::spirit::qi::rule<Iterator,
 	                        attribute(),
-	                        boost::spirit::ascii::space_type> expr, apps, parens, var, abs;
+	                        boost::spirit::ascii::space_type> expr, parens, var, abs;
 
 	boost::spirit::qi::rule<Iterator,
 	                        std::string(),
