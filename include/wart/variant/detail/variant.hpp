@@ -71,7 +71,7 @@ struct copy_construct {
 };
 
 template <typename... T>
-struct copy_construct_index {
+struct copy_construct_and_index {
 	union_t<uninitialized, T...>& union_;
 	template <typename U>
 	int operator()(U const& value) {
@@ -90,7 +90,7 @@ struct move_construct {
 };
 
 template <typename... T>
-struct move_construct_index {
+struct move_construct_and_index {
 	union_t<uninitialized, T...>& union_;
 	template <typename U>
 	typename enable_if_move_constructible<U, int>::type operator()(U&& value) {
@@ -109,7 +109,7 @@ struct copy_assign {
 };
 
 template <typename... T>
-struct copy_assign_retag {
+struct copy_assign_and_retag {
 	variant<T...>* this_;
 	template <typename U>
 	void operator()(U const& value) {
@@ -133,7 +133,7 @@ struct move_assign {
 };
 
 template <typename... T>
-struct move_assign_retag {
+struct move_assign_and_retag {
 	variant<T...>* this_;
 	template <typename U>
 	typename enable_if_move_constructible<U>::type operator()(U&& value) {
@@ -201,7 +201,7 @@ public:
 	variant(variant<U...> const& rhs,
 	        typename std::enable_if<all<elem<U, T...>::value...>::value
 	        >::type* = nullptr):
-		tag_{rhs.accept(copy_construct_index<T...>{union_})} {}
+		tag_{rhs.accept(copy_construct_and_index<T...>{union_})} {}
 
 	variant(variant&& rhs):
 		tag_{rhs.tag_} {
@@ -213,7 +213,7 @@ public:
 	        typename std::enable_if<
 	        all<elem<U, T...>::value...>::value
 	        >::type* = nullptr):
-		tag_{std::move(rhs).accept(move_construct_index<T...>{union_})} {}
+		tag_{std::move(rhs).accept(move_construct_and_index<T...>{union_})} {}
 
 	variant& operator=(variant const& rhs) & {
 		static_assert(all<std::is_nothrow_copy_constructible<T>::value...>::value,
@@ -235,7 +235,7 @@ public:
 	variant& operator=(variant<U...> const& rhs) & {
 		static_assert(all<std::is_nothrow_copy_constructible<T>::value...>::value,
 		              "all template arguments T must be nothrow copy constructible in class template variant");
-		rhs.accept(copy_assign_retag<T...>{this});
+		rhs.accept(copy_assign_and_retag<T...>{this});
 		return *this;
 	}
 
@@ -259,7 +259,7 @@ public:
 	variant& operator=(variant<U...>&& rhs) & {
 		static_assert(all<std::is_nothrow_copy_constructible<T>::value...>::value,
 		              "all template arguments T must be nothrow copy constructible in class template variant");
-		std::move(rhs).accept(move_assign_retag<T...>{this});
+		std::move(rhs).accept(move_assign_and_retag<T...>{this});
 		return *this;
 	}
 
@@ -291,10 +291,10 @@ public:
 	}
 
 	friend
-	struct copy_assign_retag<T...>;
+	struct copy_assign_and_retag<T...>;
 
 	friend
-	struct move_assign_retag<T...>;
+	struct move_assign_and_retag<T...>;
 
 	friend
 	destructible<T...>;
