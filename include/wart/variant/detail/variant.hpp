@@ -27,32 +27,26 @@ using common_result_of =
 template <typename F, typename... ArgTypes>
 using common_result_of_t = typename common_result_of<F, ArgTypes...>::type;
 
-template <typename U>
-struct union_cast_const_lvalue_and_call {
-	template <typename F, typename... T>
-	static
-	common_result_of_t<F, T...> call(F&& f, union_t<uninitialized, T...> const& value) {
-		return std::forward<F>(f)(union_cast<U>(value));
-	}
-};
+template <typename U, typename F, typename... T>
+inline
+common_result_of_t<F, T...>
+union_cast_and_call(F&& f, union_t<uninitialized, T...> const& value) {
+	return std::forward<F>(f)(union_cast<U>(value));
+}
 
-template <typename U>
-struct union_cast_lvalue_and_call {
-	template <typename F, typename... T>
-	static
-	common_result_of_t<F, T...> call(F&& f, union_t<uninitialized, T...>& value) {
-		return std::forward<F>(f)(union_cast<U>(value));
-	}
-};
+template <typename U, typename F, typename... T>
+inline
+common_result_of_t<F, T...>
+union_cast_and_call(F&& f, union_t<uninitialized, T...>& value) {
+	return std::forward<F>(f)(union_cast<U>(value));
+}
 
-template <typename U>
-struct union_cast_rvalue_and_call {
-	template <typename F, typename... T>
-	static
-	common_result_of_t<F, T...> call(F&& f, union_t<uninitialized, T...>&& value) {
-		return std::forward<F>(f)(union_cast<U>(std::move(value)));
-	}
-};
+template <typename U, typename F, typename... T>
+inline
+common_result_of_t<F, T...>
+union_cast_and_call(F&& f, union_t<uninitialized, T...>&& value) {
+	return std::forward<F>(f)(union_cast<U>(std::move(value)));
+}
 
 struct destroy {
 	template <typename T>
@@ -267,7 +261,7 @@ public:
 	result_of_t<F> accept(F&& f) const& {
 		using call = result_of_t<F&&> (*)(F&& f, union_t<uninitialized, T...> const&);
 		static call calls[] {
-			union_cast_const_lvalue_and_call<T>::call...
+			union_cast_and_call<T, F, T...>...
 		};
 		return calls[tag_](std::forward<F>(f), union_);
 	}
@@ -276,7 +270,7 @@ public:
 	result_of_t<F> accept(F&& f) & {
 		using call = result_of_t<F&&> (*)(F&& f, union_t<uninitialized, T...>&);
 		static call calls[] {
-			union_cast_lvalue_and_call<T>::call...
+			union_cast_and_call<T, F, T...>...
 		};
 		return calls[tag_](std::forward<F>(f), union_);
 	}
@@ -285,7 +279,7 @@ public:
 	result_of_t<F> accept(F&& f) && {
 		using call = result_of_t<F> (*)(F&& f, union_t<uninitialized, T...>&&);
 		static call calls[] {
-			union_cast_rvalue_and_call<T>::call...
+			union_cast_and_call<T, F, T...>...
 		};
 		return calls[tag_](std::forward<F>(f), std::move(union_));
 	}
