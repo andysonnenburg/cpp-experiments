@@ -24,6 +24,36 @@ template <typename F, typename... ArgTypes>
 using common_result_of =
 	std::common_type<typename std::result_of<F(ArgTypes)>::type...>;
 
+template <typename F, typename... ArgTypes>
+using common_result_of_t = typename common_result_of<F, ArgTypes...>::type;
+
+template <typename U>
+struct cast_const_lvalue_and_call {
+	template <typename F, typename... T>
+	static
+	common_result_of_t<F, T...> call(F&& f, union_t<uninitialized, T...> const& value) {
+		return std::forward<F>(f)(union_cast<U>(value));
+	}
+};
+
+template <typename U>
+struct cast_lvalue_and_call {
+	template <typename F, typename... T>
+	static
+	common_result_of_t<F, T...> call(F&& f, union_t<uninitialized, T...>& value) {
+		return std::forward<F>(f)(union_cast<U>(value));
+	}
+};
+
+template <typename U>
+struct cast_rvalue_and_call {
+	template <typename F, typename... T>
+	static
+	common_result_of_t<F, T...> call(F&& f, union_t<uninitialized, T...>&& value) {
+		return std::forward<F>(f)(union_cast<U>(std::move(value)));
+	}
+};
+
 struct destroy {
 	template <typename T>
 	void operator()(T&& value) {
@@ -126,14 +156,7 @@ struct trivially_destructible<true, T...> {};
 template <typename... T>
 struct trivially_destructible<false, T...> {
 	~trivially_destructible() {
-		struct {
-			template <typename U>
-			void operator()(U&& value) {
-				using type = typename std::remove_reference<U>::type;
-				std::forward<U>(value).~type();
-			}
-		} destroy;
-		static_cast<variant<T...>*>(this)->accept(destroy);
+		static_cast<variant<T...>*>(this)->accept(destroy{});
 	}
 };
 
@@ -244,9 +267,7 @@ public:
 	result_of_t<F> accept(F&& f) const& {
 		using call = result_of_t<F&&> (*)(F&& f, union_t<uninitialized, T...> const&);
 		static call calls[] {
-			[](F&& f, union_t<uninitialized, T...> const& value) {
-				return std::forward<F>(f)(union_cast<T>(value));
-			}...
+			cast_const_lvalue_and_call<T>::call...
 		};
 		return calls[tag_](std::forward<F>(f), union_);
 	}
@@ -255,9 +276,7 @@ public:
 	result_of_t<F> accept(F&& f) & {
 		using call = result_of_t<F&&> (*)(F&& f, union_t<uninitialized, T...>&);
 		static call calls[] {
-			[](F&& f, union_t<uninitialized, T...>& value) {
-				return std::forward<F>(f)(union_cast<T>(value));
-			}...
+			cast_lvalue_and_call<T>::call...
 		};
 		return calls[tag_](std::forward<F>(f), union_);
 	}
@@ -266,9 +285,7 @@ public:
 	result_of_t<F> accept(F&& f) && {
 		using call = result_of_t<F> (*)(F&& f, union_t<uninitialized, T...>&&);
 		static call calls[] {
-			[](F&& f, union_t<uninitialized, T...>&& value) {
-				return std::forward<F>(f)(std::move(union_cast<T>(value)));
-			}...
+			cast_rvalue_and_call<T>::call...
 		};
 		return calls[tag_](std::forward<F>(f), std::move(union_));
 	}

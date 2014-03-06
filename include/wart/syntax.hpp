@@ -21,7 +21,6 @@ class Var {
 public:
 	Var(std::string const&);
 	Var(Var&&) = default;
-	~Var() = default;
 	std::string& x();
 	std::string const& x() const;
 };
@@ -31,7 +30,6 @@ class App {
 	unique_ptr<Expr> e2_;
 
 public:
-	App() = default;
 	App(Expr&&, Expr&&);
 	App(App&&) = default;
 	Expr& e1();

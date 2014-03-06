@@ -9,12 +9,14 @@ enable_testing()
 find_package(GTest REQUIRED)
 
 set(PROJECT_TEST_NAME "${PROJECT_NAME}_test")
-set(CMAKE_CXX_COMPILER "clang++")
 set(CMAKE_CXX_FLAGS "-Wall -Wextra -pedantic -std=c++11")
 
 include_directories(include)
+
+add_executable(demangle tools/demangle.cpp)
+
 file(GLOB_RECURSE SRC_FILES "${PROJECT_SOURCE_DIR}/src/*.cpp")
-add_executable(${PROJECT_NAME} ${SRC_FILES})
+add_executable("${PROJECT_NAME}" ${SRC_FILES})
 
 file(GLOB_RECURSE TEST_FILES "${PROJECT_SOURCE_DIR}/test/*.cpp")
 add_executable("${PROJECT_TEST_NAME}" ${TEST_FILES})
