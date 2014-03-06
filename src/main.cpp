@@ -1,9 +1,11 @@
 #include "wart/grammar.hpp"
-#include "wart/unique_ptr.hpp"
 #include "wart/value/syntax.hpp"
 #include "wart/variant.hpp"
 
+#include <boost/spirit/include/qi.hpp>
+
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -20,7 +22,7 @@ int main() {
 	std::string::const_iterator end(storage.end());
 
 	wart::grammar<std::string::const_iterator> grammar;
-	wart::unique_ptr<wart::value::syntax::Expr> result;
+	std::shared_ptr<wart::value::syntax::Expr> result;
 
 	if (phrase_parse(i, end, grammar, space, result) && i == end) {
 		return 0;

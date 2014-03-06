@@ -1,7 +1,6 @@
 #ifndef WART_VALUE_SYNTAX_HPP
 #define WART_VALUE_SYNTAX_HPP
 
-#include "../unique_ptr.hpp"
 #include "../variant.hpp"
 
 #include <memory>
@@ -18,18 +17,17 @@ class Var {
 	std::string x_;
 
 public:
-	template <typename String>
-	Var(String&&);
+	Var(std::string const&);
 	std::string& x();
 	std::string const& x() const;
 };
 
 class App {
-	unique_ptr<Expr> e1_;
-	unique_ptr<Expr> e2_;
+	std::shared_ptr<Expr> e1_;
+	std::shared_ptr<Expr> e2_;
 
 public:
-	App(Expr&&, Expr&&);
+	App(std::shared_ptr<Expr> const&, std::shared_ptr<Expr> const&);
 	Expr& e1();
 	Expr const& e1() const;
 	Expr& e2();
@@ -38,26 +36,16 @@ public:
 
 class Abs {
 	std::string x_;
-	unique_ptr<Expr> e_;
+	std::shared_ptr<Expr> e_;
 
 public:
-	template <typename String>
-	Abs(String&&, Expr&&);
+	Abs(std::string const&, std::shared_ptr<Expr> const&);
 	Abs(Abs&&) = default;
 	std::string& x();
 	std::string const& x() const;
 	Expr& e();
 	Expr const& e() const;
 };
-
-template <typename String>
-Var::Var(String&& x):
-	x_(std::forward<String>(x)) {}
-
-template <typename String>
-Abs::Abs(String&& x, Expr&& e):
-	x_(std::forward<String>(x)),
-	e_(make_unique<Expr>(std::move(e))) {}
 
 }}}
 

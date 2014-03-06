@@ -30,14 +30,14 @@ using common_result_of_t = typename common_result_of<F, ArgTypes...>::type;
 template <typename U, typename F, typename... T>
 inline
 common_result_of_t<F, T...>
-union_cast_and_call(F&& f, union_t<uninitialized, T...> const& value) {
+union_cast_and_call(F&& f, union_t<uninitialized, T...>& value) {
 	return std::forward<F>(f)(union_cast<U>(value));
 }
 
 template <typename U, typename F, typename... T>
 inline
 common_result_of_t<F, T...>
-union_cast_and_call(F&& f, union_t<uninitialized, T...>& value) {
+union_cast_and_call(F&& f, union_t<uninitialized, T...> const& value) {
 	return std::forward<F>(f)(union_cast<U>(value));
 }
 
@@ -60,7 +60,8 @@ template <typename... T>
 struct copy_construct {
 	union_t<uninitialized, T...>& union_;
 	template <typename U>
-	void operator()(U const& value) {new (&union_cast<U>(union_)) U(value);
+	void operator()(U const& value) {
+		new (&union_cast<U>(union_)) U(value);
 	}
 };
 
@@ -258,8 +259,8 @@ public:
 	}
 
 	template <typename F>
-	result_of_t<F> accept(F&& f) const& {
-		using call = result_of_t<F&&> (*)(F&& f, union_t<uninitialized, T...> const&);
+	result_of_t<F> accept(F&& f) & {
+		using call = result_of_t<F&&> (*)(F&& f, union_t<uninitialized, T...>&);
 		static call calls[] {
 			union_cast_and_call<T, F, T...>...
 		};
@@ -267,8 +268,8 @@ public:
 	}
 
 	template <typename F>
-	result_of_t<F> accept(F&& f) & {
-		using call = result_of_t<F&&> (*)(F&& f, union_t<uninitialized, T...>&);
+	result_of_t<F> accept(F&& f) const& {
+		using call = result_of_t<F&&> (*)(F&& f, union_t<uninitialized, T...> const&);
 		static call calls[] {
 			union_cast_and_call<T, F, T...>...
 		};
