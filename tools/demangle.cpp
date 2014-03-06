@@ -30,7 +30,7 @@ std::string demangle(char const* name) {
 int main(int argc, char* argv[]) {
 	using namespace std;
 	if (argc != 2) {
-		std::cerr << argv[0] << " " << "NAME" << std::endl;
+		cerr << argv[0] << " " << "NAME" << endl;
 		return 1;
 	}
 	try {

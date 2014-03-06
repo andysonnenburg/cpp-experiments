@@ -28,7 +28,7 @@ template <typename F, typename... ArgTypes>
 using common_result_of_t = typename common_result_of<F, ArgTypes...>::type;
 
 template <typename U>
-struct cast_const_lvalue_and_call {
+struct union_cast_const_lvalue_and_call {
 	template <typename F, typename... T>
 	static
 	common_result_of_t<F, T...> call(F&& f, union_t<uninitialized, T...> const& value) {
@@ -37,7 +37,7 @@ struct cast_const_lvalue_and_call {
 };
 
 template <typename U>
-struct cast_lvalue_and_call {
+struct union_cast_lvalue_and_call {
 	template <typename F, typename... T>
 	static
 	common_result_of_t<F, T...> call(F&& f, union_t<uninitialized, T...>& value) {
@@ -46,7 +46,7 @@ struct cast_lvalue_and_call {
 };
 
 template <typename U>
-struct cast_rvalue_and_call {
+struct union_cast_rvalue_and_call {
 	template <typename F, typename... T>
 	static
 	common_result_of_t<F, T...> call(F&& f, union_t<uninitialized, T...>&& value) {
@@ -71,7 +71,7 @@ struct copy_construct {
 };
 
 template <typename... T>
-struct copy_construct_and_index {
+struct copy_construct_and_tag {
 	union_t<uninitialized, T...>& union_;
 	template <typename U>
 	int operator()(U const& value) {
@@ -90,7 +90,7 @@ struct move_construct {
 };
 
 template <typename... T>
-struct move_construct_and_index {
+struct move_construct_and_tag {
 	union_t<uninitialized, T...>& union_;
 	template <typename U>
 	typename enable_if_move_constructible<U, int>::type operator()(U&& value) {
@@ -201,7 +201,7 @@ public:
 	variant(variant<U...> const& rhs,
 	        typename std::enable_if<all<elem<U, T...>::value...>::value
 	        >::type* = nullptr):
-		tag_{rhs.accept(copy_construct_and_index<T...>{union_})} {}
+		tag_{rhs.accept(copy_construct_and_tag<T...>{union_})} {}
 
 	variant(variant&& rhs):
 		tag_{rhs.tag_} {
@@ -213,7 +213,7 @@ public:
 	        typename std::enable_if<
 	        all<elem<U, T...>::value...>::value
 	        >::type* = nullptr):
-		tag_{std::move(rhs).accept(move_construct_and_index<T...>{union_})} {}
+		tag_{std::move(rhs).accept(move_construct_and_tag<T...>{union_})} {}
 
 	variant& operator=(variant const& rhs) & {
 		static_assert(all<std::is_nothrow_copy_constructible<T>::value...>::value,
@@ -267,7 +267,7 @@ public:
 	result_of_t<F> accept(F&& f) const& {
 		using call = result_of_t<F&&> (*)(F&& f, union_t<uninitialized, T...> const&);
 		static call calls[] {
-			cast_const_lvalue_and_call<T>::call...
+			union_cast_const_lvalue_and_call<T>::call...
 		};
 		return calls[tag_](std::forward<F>(f), union_);
 	}
@@ -276,7 +276,7 @@ public:
 	result_of_t<F> accept(F&& f) & {
 		using call = result_of_t<F&&> (*)(F&& f, union_t<uninitialized, T...>&);
 		static call calls[] {
-			cast_lvalue_and_call<T>::call...
+			union_cast_lvalue_and_call<T>::call...
 		};
 		return calls[tag_](std::forward<F>(f), union_);
 	}
@@ -285,7 +285,7 @@ public:
 	result_of_t<F> accept(F&& f) && {
 		using call = result_of_t<F> (*)(F&& f, union_t<uninitialized, T...>&&);
 		static call calls[] {
-			cast_rvalue_and_call<T>::call...
+			union_cast_rvalue_and_call<T>::call...
 		};
 		return calls[tag_](std::forward<F>(f), std::move(union_));
 	}
