@@ -2,6 +2,7 @@
 #define WART_GRAMMAR_HPP
 
 #include <boost/spirit/include/qi.hpp>
+#include <boost/spirit/include/phoenix_algorithm.hpp>
 #include <boost/spirit/include/phoenix_core.hpp>
 #include <boost/spirit/include/phoenix_object.hpp>
 #include <boost/spirit/include/phoenix_operator.hpp>
@@ -27,9 +28,11 @@ struct grammar: boost::spirit::qi::grammar<Iterator,
 		using namespace boost::spirit::qi;
 
 		expr
-			= parens
-			| var
-			| abs
+			= ((parens | var | abs) >> *(parens | var | abs))
+			[ _val = accumulate(_2, _1, [](std::shared_ptr<Expr> const& e1,
+			                               std::shared_ptr<Expr> const& e2) {
+				                    return std::make_shared<Expr>(App{e1, e2});
+			                    }) ]
 			;
 
 		parens
