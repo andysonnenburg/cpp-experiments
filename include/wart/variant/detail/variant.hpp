@@ -7,6 +7,7 @@
 
 #include "../../all.hpp"
 #include "../../enable_if_move_constructible.hpp"
+#include "../../undecayed_common_type.hpp"
 #include "../../union.hpp"
 
 #include <type_traits>
@@ -23,7 +24,7 @@ class uninitialized {};
 
 template <typename F, typename... ArgTypes>
 using common_result_of =
-	std::common_type<typename std::result_of<F(ArgTypes)>::type...>;
+	undecayed_common_type<typename std::result_of<F(ArgTypes)>::type...>;
 
 template <typename F, typename... ArgTypes>
 using common_result_of_t = typename common_result_of<F, ArgTypes...>::type;
@@ -51,7 +52,7 @@ union_cast_and_call(F&& f, union_t<uninitialized, T...>&& value) {
 
 struct destroy {
 	template <typename T>
-	void operator()(T&& value) {
+	void operator()(T&& value) const {
 		using type = typename std::remove_reference<T>::type;
 		std::forward<T>(value).~type();
 	}
@@ -263,36 +264,6 @@ public:
 		std::move(rhs).accept(move_assign_and_retag<T...>{this});
 		return *this;
 	}
-
-	// typename std::common_type<T...>::type& operator*() & {
-	//	struct {
-	//		template <typename U>
-	//		typename std::common_type<T...>::type& operator()(U& value) {
-	//			return value;
-	//		}
-	//	} visitor;
-	//	return accept(visitor);
-	// }
-
-	// typename std::common_type<T...>::type const& operator*() const& {
-	//	struct {
-	//		template <typename U>
-	//		typename std::common_type<T...>::type const& operator()(U const& value) {
-	//			return value;
-	//		}
-	//	} visitor;
-	//	return accept(visitor);
-	// }
-
-	// typename std::common_type<T...>::type&& operator*() && {
-	//	struct {
-	//		template <typename U>
-	//		typename std::common_type<T...>::type&& operator()(U&& value) {
-	//			return std::move(value);
-	//		}
-	//	} visitor;
-	//	return accept(visitor);
-	// }
 
 	template <typename F>
 	result_of_t<F> accept(F&& f) & {

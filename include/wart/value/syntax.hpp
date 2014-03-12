@@ -11,7 +11,7 @@ namespace wart { namespace value { namespace syntax {
 class Var;
 class App;
 class Abs;
-using Expr = variant<Var, App, Abs>;
+using Expr = wart::variant<Var, App, Abs>;
 
 class Var {
 	std::string x_;
