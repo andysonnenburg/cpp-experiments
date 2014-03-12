@@ -1,8 +1,8 @@
 #ifndef WART_UNION_DETAIL_HPP
 #define WART_UNION_DETAIL_HPP
 
-#include "../../all.hpp"
-#include "../../enable_if_move_constructible.hpp"
+#include "../all.hpp"
+#include "../enable_if_move_constructible.hpp"
 
 #include <type_traits>
 #include <utility>
@@ -11,6 +11,9 @@ namespace wart { namespace detail { namespace union_t {
 
 template <bool, typename...>
 union union_t;
+
+template <typename T>
+struct make_tag {};
 
 template <typename, typename...>
 struct union_cast;
@@ -30,6 +33,10 @@ public:
 	constexpr union_t(T&& head):
 		head_(std::move(head)) {}
 
+	template <typename... Args>
+	constexpr union_t(make_tag<T>, Args... args):
+		head_(std::forward<Args>(args)...) {}
+
 	friend
 	struct union_cast<T, T>;
 };
@@ -48,6 +55,10 @@ public:
 
 	constexpr union_t(T&& head):
 		head_(std::move(head)) {}
+
+	template <typename... Args>
+	constexpr union_t(make_tag<T>, Args... args):
+		head_(std::forward<Args>(args)...) {}
 
 	~union_t() {}
 
@@ -79,6 +90,14 @@ public:
 	constexpr union_t(T&& tail,
 	                  typename enable_if_move_constructible<T>::type* = nullptr):
 		tail_(std::move(tail)) {}
+
+	template <typename... Args>
+	constexpr union_t(make_tag<Head>, Args... args):
+		head_(std::forward<Args>(args)...) {}
+
+	template <typename T, typename... Args>
+	constexpr union_t(make_tag<T> tag, Args... args):
+		tail_(tag, std::forward<Args>(args)...) {}
 
 	template <typename Elem, typename... T>
 	friend
@@ -112,6 +131,14 @@ public:
 	constexpr union_t(T&& tail,
 	                  typename enable_if_move_constructible<T>::type* = nullptr):
 		tail_(std::move(tail)) {}
+
+	template <typename... Args>
+	constexpr union_t(make_tag<Head>, Args... args):
+		head_(std::forward<Args>(args)...) {}
+
+	template <typename T, typename... Args>
+	constexpr union_t(make_tag<T> tag, Args... args):
+		tail_(tag, std::forward<Args>(args)...) {}
 
 	~union_t() {}
 

@@ -40,7 +40,6 @@ class Abs {
 
 public:
 	Abs(std::string const&, std::shared_ptr<Expr> const&);
-	Abs(Abs&&) = default;
 	std::string& x();
 	std::string const& x() const;
 	Expr& e();
