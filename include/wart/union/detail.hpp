@@ -12,9 +12,6 @@ namespace wart { namespace detail { namespace union_t {
 template <bool, typename...>
 union union_t;
 
-template <typename T>
-struct make_tag {};
-
 template <typename, typename...>
 struct union_cast;
 
@@ -33,8 +30,8 @@ public:
 	constexpr union_t(T&& head):
 		head_(std::move(head)) {}
 
-	template <typename... Args>
-	constexpr union_t(make_tag<T>, Args... args):
+	template <template <typename> class Tag, typename... Args>
+	constexpr union_t(Tag<T>, Args... args):
 		head_(std::forward<Args>(args)...) {}
 
 	friend
@@ -56,8 +53,8 @@ public:
 	constexpr union_t(T&& head):
 		head_(std::move(head)) {}
 
-	template <typename... Args>
-	constexpr union_t(make_tag<T>, Args... args):
+	template <template <typename> class Tag, typename... Args>
+	constexpr union_t(Tag<T>, Args... args):
 		head_(std::forward<Args>(args)...) {}
 
 	~union_t() {}
@@ -91,12 +88,12 @@ public:
 	                  typename enable_if_move_constructible<T>::type* = nullptr):
 		tail_(std::move(tail)) {}
 
-	template <typename... Args>
-	constexpr union_t(make_tag<Head>, Args... args):
+	template <template <typename> class Tag, typename... Args>
+	constexpr union_t(Tag<Head>, Args... args):
 		head_(std::forward<Args>(args)...) {}
 
-	template <typename T, typename... Args>
-	constexpr union_t(make_tag<T> tag, Args... args):
+	template <template <typename> class Tag, typename T, typename... Args>
+	constexpr union_t(Tag<T> tag, Args... args):
 		tail_(tag, std::forward<Args>(args)...) {}
 
 	template <typename Elem, typename... T>
@@ -132,12 +129,12 @@ public:
 	                  typename enable_if_move_constructible<T>::type* = nullptr):
 		tail_(std::move(tail)) {}
 
-	template <typename... Args>
-	constexpr union_t(make_tag<Head>, Args... args):
+	template <template <typename> class Tag, typename... Args>
+	constexpr union_t(Tag<Head>, Args... args):
 		head_(std::forward<Args>(args)...) {}
 
-	template <typename T, typename... Args>
-	constexpr union_t(make_tag<T> tag, Args... args):
+	template <template <typename> class Tag, typename T, typename... Args>
+	constexpr union_t(Tag<T> tag, Args... args):
 		tail_(tag, std::forward<Args>(args)...) {}
 
 	~union_t() {}

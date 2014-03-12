@@ -11,6 +11,9 @@
 
 namespace wart {
 
+template <typename T>
+struct make_union_tag {};
+
 template <typename... T>
 class union_t {
 	detail::union_t::union_t<
@@ -18,8 +21,8 @@ class union_t {
 		T...> union_;
 
 public:
-	constexpr union_t()
-		: union_() {}
+	constexpr union_t():
+		union_() {}
 
 	template <typename U>
 	constexpr union_t(U const& value):
@@ -29,6 +32,10 @@ public:
 	constexpr union_t(U&& value,
 	                  typename enable_if_move_constructible<U>::type* = nullptr):
 		union_(std::move(value)) {}
+
+	template <typename U, typename... Args>
+	constexpr union_t(make_union_tag<U> tag, Args... args):
+		union_(tag, std::forward<Args>(args)...) {}
 
 	template <typename Elem, typename... U>
 	friend

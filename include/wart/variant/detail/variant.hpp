@@ -3,6 +3,7 @@
 
 #include "enable_if_elem.hpp"
 #include "elem_index.hpp"
+#include "head.hpp"
 
 #include "../../all.hpp"
 #include "../../enable_if_move_constructible.hpp"
@@ -172,6 +173,11 @@ public:
 	template <typename F>
 	using result_of_t = typename result_of<F>::type;
 
+	constexpr
+	variant():
+		tag_{0},
+		union_{make_union_tag<typename head<T...>::type>()} {}
+
 	template <typename U>
 	constexpr
 	variant(U const& value,
@@ -257,6 +263,36 @@ public:
 		std::move(rhs).accept(move_assign_and_retag<T...>{this});
 		return *this;
 	}
+
+	// typename std::common_type<T...>::type& operator*() & {
+	//	struct {
+	//		template <typename U>
+	//		typename std::common_type<T...>::type& operator()(U& value) {
+	//			return value;
+	//		}
+	//	} visitor;
+	//	return accept(visitor);
+	// }
+
+	// typename std::common_type<T...>::type const& operator*() const& {
+	//	struct {
+	//		template <typename U>
+	//		typename std::common_type<T...>::type const& operator()(U const& value) {
+	//			return value;
+	//		}
+	//	} visitor;
+	//	return accept(visitor);
+	// }
+
+	// typename std::common_type<T...>::type&& operator*() && {
+	//	struct {
+	//		template <typename U>
+	//		typename std::common_type<T...>::type&& operator()(U&& value) {
+	//			return std::move(value);
+	//		}
+	//	} visitor;
+	//	return accept(visitor);
+	// }
 
 	template <typename F>
 	result_of_t<F> accept(F&& f) & {

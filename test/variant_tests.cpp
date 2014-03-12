@@ -71,3 +71,25 @@ TEST(variant_test, rvalue_accepts) {
 	wart::variant<double, int>(1).accept(visitor{visited});
 	EXPECT_TRUE(visited);
 }
+
+TEST(variant_test, default_constructor) {
+	struct nontrivial_default_constructible {
+		double value_;
+		nontrivial_default_constructible():
+			value_{3.14} {}
+	};
+
+	bool visited = false;
+	struct visitor {
+		bool& visited_;
+		void operator()(nontrivial_default_constructible x) {
+			visited_ = true;
+			EXPECT_EQ(3.14, x.value_);
+		}
+		void operator()(char) {
+			FAIL();
+		}
+	};
+	wart::variant<nontrivial_default_constructible, char>{}.accept(visitor{visited});
+	EXPECT_TRUE(visited);
+}
