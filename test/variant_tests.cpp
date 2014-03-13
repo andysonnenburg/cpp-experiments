@@ -10,7 +10,7 @@ TEST(variant_test, lvalue_accepts) {
 		bool visited = false;
 		struct visitor {
 			bool& visited_;
-			void operator()(int) {
+			void operator()(int&) {
 				FAIL();
 			}
 			void operator()(double& x) {
