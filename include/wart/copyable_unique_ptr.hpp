@@ -109,7 +109,7 @@ void swap(state<Allocator>& lhs, state<Allocator>& rhs) {
 
 template <typename T, typename Allocator = std::allocator<T>>
 class copyable_unique_ptr {
-	using allocator_traits = std::allocator_traits<Allocator>;
+	using allocator_traits = typename std::allocator_traits<Allocator>::template rebind_traits<T>;
 
 public:
 	using pointer = typename allocator_traits::pointer;
