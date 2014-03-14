@@ -26,8 +26,8 @@ public:
 		pointer_{new_if_not_nullptr(allocator(), rhs.pointer_)} {}
 
 	state(state&& rhs):
-		pointer_{rhs.pointer_} {
-		rhs.pointer_ = nullptr;
+		state() {
+		swap(rhs);
 	}
 
 	template <typename... Args>
@@ -38,9 +38,8 @@ public:
 		delete_(allocator(), pointer_);
 	}
 
-	state& operator=(state const& rhs) & {
-		delete_(allocator(), pointer_);
-		pointer_ = new_if_not_nullptr(allocator(), rhs.pointer_);
+	state& operator=(state rhs) & {
+		swap(rhs);
 		return *this;
 	}
 
