@@ -51,8 +51,23 @@ public:
 		return *this;
 	}
 
+	void swap(state& rhs) {
+		using std::swap;
+		swap(pointer_, rhs.pointer_);
+	}
+
 	pointer get() const {
 		return pointer_;
+	}
+
+	pointer release() {
+		pointer pointer = pointer_;
+		pointer_ = nullptr;
+		return pointer;
+	}
+
+	allocator_type get_allocator() {
+		return allocator();
 	}
 
 private:
@@ -85,20 +100,24 @@ private:
 	}
 };
 
+template <typename Allocator>
+void swap(state<Allocator>& lhs, state<Allocator>& rhs) {
+	lhs.swap(rhs);
+}
+
 }}
 
 template <typename T, typename Allocator = std::allocator<T>>
 class copyable_unique_ptr {
-	using pointer_traits = std::pointer_traits<T*>;
 	using allocator_traits = std::allocator_traits<Allocator>;
 
 public:
-	using pointer = typename pointer_traits::pointer;
-	using element_type = typename pointer_traits::element_type;
+	using pointer = typename allocator_traits::pointer;
+	using element_type = typename std::pointer_traits<pointer>::element_type;
 	using allocator_type = typename allocator_traits::allocator_type;
+	using value_type = typename allocator_traits::value_type;
 
-	copyable_unique_ptr():
-		state_{} {}
+	copyable_unique_ptr() = default;
 
 	template <typename... Args>
 	copyable_unique_ptr(make_tag<T> tag, Args&&... args):
@@ -112,17 +131,31 @@ public:
 		return state_.get();
 	}
 
-	element_type& operator[](std::size_t i) const {
-		return state_.get()[i];
+	void swap(copyable_unique_ptr& rhs) {
+		using std::swap;
+		swap(state_, rhs.state_);
 	}
 
 	pointer get() const {
 		return state_.get();
 	}
 
+	allocator_type get_allocator() {
+		return state_.get_allocator();
+	}
+
+	pointer release() {
+		return state_.release();
+	}
+
 private:
 	detail::copyable_unique_ptr::state<allocator_type> state_;
 };
+
+template <typename T>
+void swap(copyable_unique_ptr<T>& lhs, copyable_unique_ptr<T>& rhs) {
+	lhs.swap(rhs);
+}
 
 }
 
