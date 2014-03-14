@@ -7,6 +7,7 @@
 
 #include "../../all.hpp"
 #include "../../enable_if_move_constructible.hpp"
+#include "../../make_tag.hpp"
 #include "../../undecayed_common_type.hpp"
 #include "../../union.hpp"
 
@@ -172,14 +173,14 @@ public:
 	constexpr
 	variant():
 		tag_{0},
-		union_{make_union_tag<typename head<T...>::type>()} {}
+		union_{make_tag<typename head<T...>::type>()} {}
 
 	template <typename U>
 	constexpr
 	variant(U const& value,
 	        typename enable_if_elem<U, T...>::type* = nullptr):
 		tag_{elem_index<U, T...>::value},
-		union_{value} {}
+		union_{make_tag<U>(), value} {}
 
 	template <typename U>
 	constexpr
@@ -187,7 +188,7 @@ public:
 	        typename enable_if_elem<U, T...>::type* = nullptr,
 	        typename enable_if_move_constructible<U>::type* = nullptr):
 		tag_{elem_index<U, T...>::value},
-		union_{std::move(value)} {}
+		union_{make_tag<U>(), std::move(value)} {}
 
 	variant(variant const& rhs):
 		tag_{rhs.tag_} {

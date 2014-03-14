@@ -1,6 +1,8 @@
 #include "wart/grammar.hpp"
 #include "wart/value/syntax.hpp"
 #include "wart/variant.hpp"
+#include "wart/lex/nfa.hpp"
+#include "wart/lex/syntax.hpp"
 
 #include <boost/spirit/include/qi.hpp>
 
@@ -10,6 +12,12 @@
 #include <vector>
 
 int main() {
+	using namespace wart::lex;
+	using namespace syntax;
+
+	NFA<char> lexer{(char_('a') | char_('b')) & *char_('b')};
+	lexer.lex("abc");
+
 	using boost::spirit::ascii::space;
 
 	std::string storage;

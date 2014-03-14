@@ -4,7 +4,7 @@
 
 #include <string>
 
-TEST(variant_test, lvalue_accepts) {
+TEST(variant, lvalue_accepts) {
 	wart::variant<double, int> x(1.2);
 	{
 		bool visited = false;
@@ -39,7 +39,7 @@ TEST(variant_test, lvalue_accepts) {
 	}
 }
 
-TEST(variant_test, lvalue_const_accepts) {
+TEST(variant, lvalue_const_accepts) {
 	const wart::variant<int, double> x(1);
 	bool visited = false;
 	struct visitor {
@@ -56,7 +56,7 @@ TEST(variant_test, lvalue_const_accepts) {
 	EXPECT_TRUE(visited);
 }
 
-TEST(variant_test, rvalue_accepts) {
+TEST(variant, rvalue_accepts) {
 	bool visited = false;
 	struct visitor {
 		bool& visited_;
@@ -72,7 +72,7 @@ TEST(variant_test, rvalue_accepts) {
 	EXPECT_TRUE(visited);
 }
 
-TEST(variant_test, default_constructor) {
+TEST(variant, default_constructor) {
 	struct nontrivial_default_constructible {
 		double value_;
 		nontrivial_default_constructible():

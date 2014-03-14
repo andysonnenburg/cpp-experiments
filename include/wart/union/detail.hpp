@@ -73,21 +73,6 @@ public:
 	constexpr union_t():
 		head_() {}
 
-	constexpr union_t(Head const& head):
-		head_(head) {}
-
-	constexpr union_t(Head&& head):
-		head_(std::move(head)) {}
-
-	template <typename T>
-	constexpr union_t(T const& tail):
-		tail_(tail) {}
-
-	template <typename T>
-	constexpr union_t(T&& tail,
-	                  typename enable_if_move_constructible<T>::type* = nullptr):
-		tail_(std::move(tail)) {}
-
 	template <template <typename> class Tag, typename... Args>
 	constexpr union_t(Tag<Head>, Args... args):
 		head_(std::forward<Args>(args)...) {}
@@ -113,21 +98,6 @@ private:
 public:
 	constexpr union_t():
 		head_() {}
-
-	constexpr union_t(Head const& head):
-		head_(head) {}
-
-	constexpr union_t(Head&& head):
-		head_(std::move(head)) {}
-
-	template <typename T>
-	constexpr union_t(T const& tail):
-		tail_(tail) {}
-
-	template <typename T>
-	constexpr union_t(T&& tail,
-	                  typename enable_if_move_constructible<T>::type* = nullptr):
-		tail_(std::move(tail)) {}
 
 	template <template <typename> class Tag, typename... Args>
 	constexpr union_t(Tag<Head>, Args... args):
