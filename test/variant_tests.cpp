@@ -100,3 +100,20 @@ TEST(variant, equality) {
 	EXPECT_NE(variant{'a'}, variant{'b'});
 	EXPECT_NE(variant{'a'}, variant{1});
 }
+
+TEST(variant, visitor_reference_result_type) {
+	struct uncopyable {
+		uncopyable() = default;
+		uncopyable(uncopyable const&) = delete;
+		uncopyable(uncopyable&&) = delete;
+		~uncopyable() = default;
+	};
+	using variant = wart::variant<uncopyable>;
+	struct visitor {
+		uncopyable& operator()(uncopyable& value) {
+			return value;
+		}
+	};
+	variant x{};
+	x.accept(visitor{});
+}

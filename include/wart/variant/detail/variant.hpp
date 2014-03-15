@@ -9,6 +9,7 @@
 #include "../../common_result_of.hpp"
 #include "../../enable_if_move_constructible.hpp"
 #include "../../make_arg.hpp"
+#include "../../undecayed_common_result_of.hpp"
 #include "../../union.hpp"
 
 #include <functional>
@@ -26,7 +27,7 @@ class uninitialized {};
 
 template <typename U, typename F, typename... T>
 inline
-common_result_of_t<F&&, T&...>
+undecayed_common_result_of_t<F&&, T&...>
 union_cast_and_call(F&& f, union_t<uninitialized, T...>& value) {
 	return std::forward<F>(f)(union_cast<U>(value));
 }
@@ -257,8 +258,8 @@ public:
 	}
 
 	template <typename F>
-	common_result_of_t<F&&, T&...> accept(F&& f) & {
-		using result_type = common_result_of_t<F&&, T&...>;
+	undecayed_common_result_of_t<F&&, T&...> accept(F&& f) & {
+		using result_type = undecayed_common_result_of_t<F&&, T&...>;
 		using call = result_type (*)(F&& f, union_t<uninitialized, T...>&);
 		static call calls[] {
 			union_cast_and_call<T, F, T...>...
