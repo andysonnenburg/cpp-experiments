@@ -104,16 +104,51 @@ TEST(variant, equality) {
 TEST(variant, visitor_reference_result_type) {
 	struct uncopyable {
 		uncopyable() = default;
-		uncopyable(uncopyable const&) = delete;
-		uncopyable(uncopyable&&) = delete;
+		uncopyable(uncopyable const&) {
+			FAIL();
+		}
+		uncopyable(uncopyable&&) {
+			FAIL();
+		}
 		~uncopyable() = default;
 	};
 	using variant = wart::variant<uncopyable>;
-	struct visitor {
-		uncopyable& operator()(uncopyable& value) {
-			return value;
-		}
-	};
-	variant x{};
-	x.accept(visitor{});
+	{
+		bool visited = false;
+		struct visitor {
+			bool& visited_;
+			uncopyable& operator()(uncopyable& value) {
+				visited_ = true;
+				return value;
+			}
+		};
+		variant x{};
+		x.accept(visitor{visited});
+		EXPECT_TRUE(visited);
+	}
+	{
+		bool visited = false;
+		struct visitor {
+			bool visited_;
+			uncopyable const& operator()(uncopyable const& value) {
+				visited_ = true;
+				return value;
+			}
+		};
+		const variant x{};
+		x.accept(visitor{visited});
+		EXPECT_TRUE(visited);
+	}
+	{
+		bool visited = false;
+		struct visitor {
+			bool& visited_;
+			uncopyable&& operator()(uncopyable&& value) {
+				visited_ = true;
+				return std::move(value);
+			}
+		};
+		variant{}.accept(visitor{visited});
+		EXPECT_TRUE(visited);
+	}
 }

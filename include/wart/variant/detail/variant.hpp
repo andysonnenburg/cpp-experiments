@@ -41,7 +41,7 @@ union_cast_and_call(F&& f, union_t<uninitialized, T...> const& value) {
 
 template <typename U, typename F, typename... T>
 inline
-common_result_of_t<F&&, T&&...>
+undecayed_common_result_of_t<F&&, T&&...>
 union_cast_and_call(F&& f, union_t<uninitialized, T...>&& value) {
 	return std::forward<F>(f)(union_cast<U>(std::move(value)));
 }
@@ -278,8 +278,8 @@ public:
 	}
 
 	template <typename F>
-	common_result_of_t<F&&, T&&...> accept(F&& f) && {
-		using result_type = common_result_of_t<F&&, T&&...>;
+	undecayed_common_result_of_t<F&&, T&&...> accept(F&& f) && {
+		using result_type = undecayed_common_result_of_t<F&&, T&&...>;
 		using call = result_type (*)(F&& f, union_t<uninitialized, T...>&&);
 		static call calls[] {
 			union_cast_and_call<T, F, T...>...
