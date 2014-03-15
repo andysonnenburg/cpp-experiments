@@ -5,7 +5,7 @@
 
 #include "all.hpp"
 #include "enable_if_move_constructible.hpp"
-#include "make_tag.hpp"
+#include "make_arg.hpp"
 
 #include <type_traits>
 #include <utility>
@@ -23,8 +23,8 @@ public:
 		union_() {}
 
 	template <typename U, typename... Args>
-	constexpr union_t(make_tag<U> tag, Args... args):
-		union_(tag, std::forward<Args>(args)...) {}
+	constexpr union_t(make_arg_t<U> arg, Args... args):
+		union_(arg, std::forward<Args>(args)...) {}
 
 	template <typename Elem, typename... U>
 	friend

@@ -1,7 +1,7 @@
 #ifndef WART_COPYABLE_UNIQUE_PTR_HPP
 #define WART_COPYABLE_UNIQUE_PTR_HPP
 
-#include "make_tag.hpp"
+#include "make_arg.hpp"
 
 #include <memory>
 #include <utility>
@@ -20,9 +20,11 @@ public:
 	using pointer = typename allocator_traits::pointer;
 
 	state():
+		allocator_type{},
 		pointer_{nullptr} {}
 
 	state(state const& rhs):
+		allocator_type{},
 		pointer_{new_if_not_nullptr(allocator(), rhs.pointer_)} {}
 
 	state(state&& rhs):
@@ -31,7 +33,7 @@ public:
 	}
 
 	template <typename... Args>
-	state(make_tag<value_type>, Args&&... args):
+	state(make_arg_t<>, Args&&... args):
 		pointer_{new_(allocator(), std::forward<Args>(args)...)} {}
 
 	~state() {
@@ -119,8 +121,8 @@ public:
 	copyable_unique_ptr() = default;
 
 	template <typename... Args>
-	copyable_unique_ptr(make_tag<T> tag, Args&&... args):
-		state_{tag, std::forward<Args>(args)...} {}
+	copyable_unique_ptr(make_arg_t<> arg, Args&&... args):
+		state_{arg, std::forward<Args>(args)...} {}
 
 	element_type& operator*() const {
 		return *state_.get();

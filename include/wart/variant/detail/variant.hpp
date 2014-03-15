@@ -6,11 +6,12 @@
 #include "head.hpp"
 
 #include "../../all.hpp"
+#include "../../common_result_of.hpp"
 #include "../../enable_if_move_constructible.hpp"
-#include "../../make_tag.hpp"
-#include "../../undecayed_common_type.hpp"
+#include "../../make_arg.hpp"
 #include "../../union.hpp"
 
+#include <functional>
 #include <type_traits>
 #include <utility>
 
@@ -22,13 +23,6 @@ template <typename... T>
 class variant;
 
 class uninitialized {};
-
-template <typename F, typename... ArgTypes>
-using common_result_of =
-	undecayed_common_type<typename std::result_of<F(ArgTypes)>::type...>;
-
-template <typename F, typename... ArgTypes>
-using common_result_of_t = typename common_result_of<F, ArgTypes...>::type;
 
 template <typename U, typename F, typename... T>
 inline
@@ -159,13 +153,10 @@ struct trivially_destructible<false, T...> {
 };
 
 template <typename... T>
-using destructible =
+class variant:
 	trivially_destructible<
 	all<std::is_trivially_destructible<T>::value...>::value,
-	T...>;
-
-template <typename... T>
-class variant: destructible<T...> {
+	T...> {
 	int tag_;
 	union_t<uninitialized, T...> union_;
 
@@ -173,14 +164,14 @@ public:
 	constexpr
 	variant():
 		tag_{0},
-		union_{make_tag<typename head<T...>::type>()} {}
+		union_{make_arg_t<typename head<T...>::type>()} {}
 
 	template <typename U>
 	constexpr
 	variant(U const& value,
 	        typename enable_if_elem<U, T...>::type* = nullptr):
 		tag_{elem_index<U, T...>::value},
-		union_{make_tag<U>(), value} {}
+		union_{make_arg_t<U>(), value} {}
 
 	template <typename U>
 	constexpr
@@ -188,7 +179,7 @@ public:
 	        typename enable_if_elem<U, T...>::type* = nullptr,
 	        typename enable_if_move_constructible<U>::type* = nullptr):
 		tag_{elem_index<U, T...>::value},
-		union_{make_tag<U>(), std::move(value)} {}
+		union_{make_arg_t<U>(), std::move(value)} {}
 
 	variant(variant const& rhs):
 		tag_{rhs.tag_} {
@@ -261,8 +252,12 @@ public:
 		return *this;
 	}
 
+	int tag() const {
+		return tag_;
+	}
+
 	template <typename F>
-	common_result_of_t<F, T&...> accept(F&& f) & {
+	common_result_of_t<F&&, T&...> accept(F&& f) & {
 		using result_type = common_result_of_t<F&&, T&...>;
 		using call = result_type (*)(F&& f, union_t<uninitialized, T...>&);
 		static call calls[] {
@@ -272,7 +267,7 @@ public:
 	}
 
 	template <typename F>
-	common_result_of_t<F, T const&...> accept(F&& f) const& {
+	common_result_of_t<F&&, T const&...> accept(F&& f) const& {
 		using result_type = common_result_of_t<F&&, T const&...>;
 		using call = result_type (*)(F&& f, union_t<uninitialized, T...> const&);
 		static call calls[] {
@@ -282,7 +277,7 @@ public:
 	}
 
 	template <typename F>
-	common_result_of_t<F, T&&...> accept(F&& f) && {
+	common_result_of_t<F&&, T&&...> accept(F&& f) && {
 		using result_type = common_result_of_t<F&&, T&&...>;
 		using call = result_type (*)(F&& f, union_t<uninitialized, T...>&&);
 		static call calls[] {
@@ -298,7 +293,69 @@ public:
 	struct move_assign_and_retag<T...>;
 
 	friend
-	destructible<T...>;
+	struct trivially_destructible<
+		all<std::is_trivially_destructible<T>::value...>::value,
+		T...>;
+};
+
+template <typename F, typename T1>
+struct call_binary_function {
+	F&& f;
+	T1 const& value1;
+	template <typename T2>
+	typename F::result_type operator()(T2 const& value2) {
+		return std::forward<F>(f)(value1, value2);
+	}
+};
+
+template <typename F, typename... T2>
+struct accept_variant2 {
+	F&& f;
+	variant<T2...> const& variant2;
+	template <typename T1>
+	typename F::result_type operator()(T1 const& value1) {
+		return variant2
+			.accept(call_binary_function<F, T1>{
+				std::forward<F>(f),
+				value1,
+			});
+	}
+};
+
+struct equal {
+	using result_type = bool;
+	template <typename T>
+	bool operator()(T const& lhs, T const& rhs) {
+		return lhs == rhs;
+	}
+	template <typename T, typename U>
+	bool operator()(T const&, U const&) {
+		return false;
+	}
+};
+
+struct not_equal {
+	using result_type = bool;
+	template <typename T>
+	bool operator()(T const& lhs, T const& rhs) {
+		return lhs != rhs;
+	}
+	template <typename T, typename U>
+	bool operator()(T const&, U const&) {
+		return true;
+	}
+};
+
+struct hash {
+	int tag;
+	template <typename T>
+	std::size_t operator()(T const& value) const {
+		constexpr std::size_t prime = 31;
+		std::size_t result = 1;
+		result = prime * result + tag;
+		result = prime * result + std::hash<T>{}(value);
+		return result;
+	}
 };
 
 }}}

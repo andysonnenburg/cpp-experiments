@@ -1,4 +1,5 @@
 #include "wart/copyable_unique_ptr.hpp"
+#include "wart/make_arg.hpp"
 
 #include "gtest/gtest.h"
 
@@ -25,7 +26,7 @@ TEST(copyable_unique_ptr, construct_and_move) {
 		uncopyable(uncopyable const&) = delete;
 		uncopyable(uncopyable&&) = delete;
 	};
-	wart::copyable_unique_ptr<uncopyable> ptr0{wart::make_tag<uncopyable>{}};
+	wart::copyable_unique_ptr<uncopyable> ptr0{wart::make_arg};
 	wart::copyable_unique_ptr<uncopyable> ptr1{std::move(ptr0)};
 	EXPECT_EQ(nullptr, ptr0.get());
 	EXPECT_NE(nullptr, ptr1.get());
@@ -37,7 +38,7 @@ TEST(copyable_unique_ptr, construct_and_copy) {
 		copyable(copyable const&) = default;
 		copyable(copyable&&) = delete;
 	};
-	wart::copyable_unique_ptr<copyable> ptr0{wart::make_tag<copyable>{}};
+	wart::copyable_unique_ptr<copyable> ptr0{wart::make_arg};
 	wart::copyable_unique_ptr<copyable> ptr1{ptr0};
 	EXPECT_NE(nullptr, ptr0.get());
 	EXPECT_NE(nullptr, ptr1.get());

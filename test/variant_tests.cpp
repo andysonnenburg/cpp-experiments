@@ -93,3 +93,10 @@ TEST(variant, default_constructor) {
 	wart::variant<nontrivial_default_constructible, char>{}.accept(visitor{visited});
 	EXPECT_TRUE(visited);
 }
+
+TEST(variant, equality) {
+	using variant = wart::variant<int, char, double, std::string>;
+	EXPECT_EQ(variant{'a'}, variant{'a'});
+	EXPECT_NE(variant{'a'}, variant{'b'});
+	EXPECT_NE(variant{'a'}, variant{1});
+}
