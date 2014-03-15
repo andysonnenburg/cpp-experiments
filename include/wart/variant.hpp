@@ -13,18 +13,22 @@ namespace wart {
 template <typename... T>
 using variant = detail::variant::variant<T...>;
 
-template <typename F, typename... T>
-common_result_of_t<F&&, T&&...> accept(F&& f, variant<T...>&& variant) {
-	return variant.accept(std::forward<F>(f));
+template <typename F, typename Variant>
+typename F::result_type accept(F&& f, Variant&& variant) {
+	return std::forward<Variant>(variant).accept(std::forward<F>(f));
 }
 
-template <typename F, typename... T1, typename... T2>
+template <
+	typename F,
+	typename Variant1,
+	typename Variant2
+>
 typename F::result_type
-accept(F&& f, variant<T1...> const& variant1, variant<T2...> const& variant2) {
-	return variant1
-		.accept(detail::variant::accept_variant2<F, T2...>{
+accept(F&& f, Variant1&& variant1, Variant2&& variant2) {
+	return std::forward<Variant1>(variant1)
+		.accept(detail::variant::accept_variant2<F, Variant2>{
 			std::forward<F>(f),
-			variant2
+			std::forward<Variant2>(variant2)
 		});
 }
 

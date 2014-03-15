@@ -301,23 +301,24 @@ public:
 template <typename F, typename T1>
 struct call_binary_function {
 	F&& f;
-	T1 const& value1;
+	T1&& value1;
 	template <typename T2>
-	typename F::result_type operator()(T2 const& value2) {
-		return std::forward<F>(f)(value1, value2);
+	typename F::result_type operator()(T2&& value2) {
+		return std::forward<F>(f)(std::forward<T1>(value1),
+		                          std::forward<T2>(value2));
 	}
 };
 
-template <typename F, typename... T2>
+template <typename F, typename Variant2>
 struct accept_variant2 {
 	F&& f;
-	variant<T2...> const& variant2;
+	Variant2&& variant2;
 	template <typename T1>
-	typename F::result_type operator()(T1 const& value1) {
-		return variant2
+	typename F::result_type operator()(T1&& value1) {
+		return std::forward<Variant2>(variant2)
 			.accept(call_binary_function<F, T1>{
 				std::forward<F>(f),
-				value1,
+				std::forward<T1>(value1),
 			});
 	}
 };
