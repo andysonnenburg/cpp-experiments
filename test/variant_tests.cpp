@@ -3,6 +3,7 @@
 #include "gtest/gtest.h"
 
 #include <string>
+#include <type_traits>
 
 TEST(variant, lvalue_accepts) {
 	wart::variant<double, int> x(1.2);
@@ -10,10 +11,10 @@ TEST(variant, lvalue_accepts) {
 		bool visited = false;
 		struct visitor {
 			bool& visited_;
-			void operator()(int&) {
+			void operator()(int&) const {
 				FAIL();
 			}
-			void operator()(double& x) {
+			void operator()(double& x) const {
 				visited_ = true;
 				EXPECT_EQ(1.2, x);
 				x = 2.2;
@@ -101,54 +102,56 @@ TEST(variant, equality) {
 	EXPECT_NE(variant{'a'}, variant{1});
 }
 
-TEST(variant, visitor_reference_result_type) {
-	struct uncopyable {
-		uncopyable() = default;
-		uncopyable(uncopyable const&) {
-			FAIL();
-		}
-		uncopyable(uncopyable&&) {
-			FAIL();
-		}
-		~uncopyable() = default;
-	};
-	using variant = wart::variant<uncopyable>;
-	{
-		bool visited = false;
-		struct visitor {
-			bool& visited_;
-			uncopyable& operator()(uncopyable& value) {
-				visited_ = true;
-				return value;
-			}
-		};
-		variant x{};
-		x.accept(visitor{visited});
-		EXPECT_TRUE(visited);
-	}
-	{
-		bool visited = false;
-		struct visitor {
-			bool visited_;
-			uncopyable const& operator()(uncopyable const& value) {
-				visited_ = true;
-				return value;
-			}
-		};
-		const variant x{};
-		x.accept(visitor{visited});
-		EXPECT_TRUE(visited);
-	}
-	{
-		bool visited = false;
-		struct visitor {
-			bool& visited_;
-			uncopyable&& operator()(uncopyable&& value) {
-				visited_ = true;
-				return std::move(value);
-			}
-		};
-		variant{}.accept(visitor{visited});
-		EXPECT_TRUE(visited);
-	}
-}
+// TEST(variant, visitor_reference_result_type) {
+//	struct uncopyable {
+//		uncopyable() = default;
+//		uncopyable(uncopyable const&) = delete;
+//		uncopyable(uncopyable&&) = delete;
+//		~uncopyable() = default;
+//	};
+//	using variant = wart::variant<uncopyable>;
+//	{
+//		bool visited = false;
+//		struct visitor {
+//			bool& visited_;
+//			uncopyable& operator()(uncopyable& value) {
+//				visited_ = true;
+//				return value;
+//			}
+//		};
+//		variant x{};
+//		x.accept(visitor{visited});
+//		EXPECT_TRUE(visited);
+//	}
+//	{
+//		bool visited = false;
+//		struct visitor {
+//			bool visited_;
+//			uncopyable const& operator()(uncopyable const& value) {
+//				visited_ = true;
+//				return value;
+//			}
+//		};
+//		const variant x{};
+//		x.accept(visitor{visited});
+//		EXPECT_TRUE(visited);
+//	}
+//	{
+//		bool visited = false;
+//		struct visitor {
+//			bool& visited_;
+//			uncopyable&& operator()(uncopyable&& value) {
+//				visited_ = true;
+//				return std::move(value);
+//			}
+//		};
+//		variant{}.accept(visitor{visited});
+//		EXPECT_TRUE(visited);
+//	}
+// }
+
+// TEST(variant, nothrow_move_constructible) {
+//	using is_nothrow_move_constructible =
+//		std::is_nothrow_move_constructible<wart::variant<int, double>>;
+//	EXPECT_TRUE(is_nothrow_move_constructible::value);
+// }

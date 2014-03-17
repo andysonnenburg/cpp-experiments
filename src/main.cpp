@@ -16,24 +16,26 @@ int main() {
 	using namespace syntax;
 
 	NFA<char> lexer{(char_('a') | char_('b')) & *char_('b')};
-	lexer.lex("abc");
+	std::cout << lexer.lex("abc") << std::endl;
+	std::cout << lexer.lex("abb") << std::endl;
+	std::cout << lexer.lex("bbb") << std::endl;
 
-	using boost::spirit::ascii::space;
+	// using boost::spirit::ascii::space;
 
-	std::string storage;
-	std::cin.unsetf(std::ios::skipws);
-	std::copy(std::istream_iterator<char>(std::cin),
-	          std::istream_iterator<char>(),
-	          std::back_inserter(storage));
+	// std::string storage;
+	// std::cin.unsetf(std::ios::skipws);
+	// std::copy(std::istream_iterator<char>(std::cin),
+	//           std::istream_iterator<char>(),
+	//           std::back_inserter(storage));
 
-	std::string::const_iterator i(storage.begin());
-	std::string::const_iterator end(storage.end());
+	// std::string::const_iterator i(storage.begin());
+	// std::string::const_iterator end(storage.end());
 
-	wart::grammar<std::string::const_iterator> grammar;
-	std::shared_ptr<wart::value::syntax::Expr> result;
+	// wart::grammar<std::string::const_iterator> grammar;
+	// std::shared_ptr<wart::value::syntax::Expr> result;
 
-	if (phrase_parse(i, end, grammar, space, result) && i == end) {
-		return 0;
-	}
+	// if (phrase_parse(i, end, grammar, space, result) && i == end) {
+	//	return 0;
+	// }
 	return 1;
 }

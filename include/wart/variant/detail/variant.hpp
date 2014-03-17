@@ -6,11 +6,10 @@
 #include "head.hpp"
 
 #include "../../all.hpp"
-#include "../../common_result_of.hpp"
 #include "../../enable_if_move_constructible.hpp"
 #include "../../make_arg.hpp"
-#include "../../undecayed_common_result_of.hpp"
 #include "../../union.hpp"
+#include "../../visitor_result.hpp"
 
 #include <functional>
 #include <type_traits>
@@ -20,6 +19,8 @@ namespace wart { namespace detail { namespace variant {
 
 using wart::union_t;
 
+using wart::visitor_result_t;
+
 template <typename... T>
 class variant;
 
@@ -27,22 +28,22 @@ class uninitialized {};
 
 template <typename U, typename F, typename... T>
 inline
-undecayed_common_result_of_t<F&&, T&...>
-union_cast_and_call(F&& f, union_t<uninitialized, T...>& value) {
+visitor_result_t<F&&, T&...>
+union_cast_lvalue_and_call(F&& f, union_t<uninitialized, T...>& value) {
 	return std::forward<F>(f)(union_cast<U>(value));
 }
 
 template <typename U, typename F, typename... T>
 inline
-common_result_of_t<F&&, T const&...>
-union_cast_and_call(F&& f, union_t<uninitialized, T...> const& value) {
+visitor_result_t<F&&, T const&...>
+union_cast_const_lvalue_and_call(F&& f, union_t<uninitialized, T...> const& value) {
 	return std::forward<F>(f)(union_cast<U>(value));
 }
 
 template <typename U, typename F, typename... T>
 inline
-undecayed_common_result_of_t<F&&, T&&...>
-union_cast_and_call(F&& f, union_t<uninitialized, T...>&& value) {
+visitor_result_t<F&&, T&&...>
+union_cast_rvalue_and_call(F&& f, union_t<uninitialized, T...>&& value) {
 	return std::forward<F>(f)(union_cast<U>(std::move(value)));
 }
 
@@ -182,6 +183,12 @@ public:
 		tag_{elem_index<U, T...>::value},
 		union_{make_arg_t<U>(), std::move(value)} {}
 
+	template <typename U, typename... Args>
+	constexpr
+	variant(make_arg_t<U> arg, Args&&... args):
+		tag_{elem_index<U, T...>::value},
+		union_{arg, std::forward<Args>(args)...} {}
+
 	variant(variant const& rhs):
 		tag_{rhs.tag_} {
 		rhs.accept(copy_construct<T...>{union_});
@@ -258,31 +265,31 @@ public:
 	}
 
 	template <typename F>
-	undecayed_common_result_of_t<F&&, T&...> accept(F&& f) & {
-		using result_type = undecayed_common_result_of_t<F&&, T&...>;
+	visitor_result_t<F&&, T&...> accept(F&& f) & {
+		using result_type = visitor_result_t<F&&, T&...>;
 		using call = result_type (*)(F&& f, union_t<uninitialized, T...>&);
 		static call calls[] {
-			union_cast_and_call<T, F, T...>...
+			union_cast_lvalue_and_call<T, F, T...>...
 		};
 		return calls[tag_](std::forward<F>(f), union_);
 	}
 
 	template <typename F>
-	common_result_of_t<F&&, T const&...> accept(F&& f) const& {
-		using result_type = common_result_of_t<F&&, T const&...>;
+	visitor_result_t<F&&, T const&...> accept(F&& f) const& {
+		using result_type = visitor_result_t<F&&, T const&...>;
 		using call = result_type (*)(F&& f, union_t<uninitialized, T...> const&);
 		static call calls[] {
-			union_cast_and_call<T, F, T...>...
+			union_cast_const_lvalue_and_call<T, F, T...>...
 		};
 		return calls[tag_](std::forward<F>(f), union_);
 	}
 
 	template <typename F>
-	undecayed_common_result_of_t<F&&, T&&...> accept(F&& f) && {
-		using result_type = undecayed_common_result_of_t<F&&, T&&...>;
+	visitor_result_t<F&&, T&&...> accept(F&& f) && {
+		using result_type = visitor_result_t<F&&, T&&...>;
 		using call = result_type (*)(F&& f, union_t<uninitialized, T...>&&);
 		static call calls[] {
-			union_cast_and_call<T, F, T...>...
+			union_cast_rvalue_and_call<T, F, T...>...
 		};
 		return calls[tag_](std::forward<F>(f), std::move(union_));
 	}
@@ -301,10 +308,11 @@ public:
 
 template <typename F, typename T1>
 struct call_binary_function {
+	using result_type = typename F::result_type;
 	F&& f;
 	T1&& value1;
 	template <typename T2>
-	typename F::result_type operator()(T2&& value2) {
+	result_type operator()(T2&& value2) {
 		return std::forward<F>(f)(std::forward<T1>(value1),
 		                          std::forward<T2>(value2));
 	}
@@ -312,10 +320,11 @@ struct call_binary_function {
 
 template <typename F, typename Variant2>
 struct accept_variant2 {
+	using result_type = typename F::result_type;
 	F&& f;
 	Variant2&& variant2;
 	template <typename T1>
-	typename F::result_type operator()(T1&& value1) {
+	result_type operator()(T1&& value1) {
 		return std::forward<Variant2>(variant2)
 			.accept(call_binary_function<F, T1>{
 				std::forward<F>(f),
@@ -349,11 +358,12 @@ struct not_equal {
 };
 
 struct hash {
+	using result_type = std::size_t;
 	int tag;
 	template <typename T>
-	std::size_t operator()(T const& value) const {
-		constexpr std::size_t prime = 31;
-		std::size_t result = 1;
+	result_type operator()(T const& value) const {
+		constexpr result_type prime = 31;
+		result_type result = 1;
 		result = prime * result + tag;
 		result = prime * result + std::hash<T>{}(value);
 		return result;
