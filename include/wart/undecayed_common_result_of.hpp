@@ -4,13 +4,11 @@
 #include "result_of.hpp"
 #include "undecayed_common_type.hpp"
 
-#include <type_traits>
-
 namespace wart {
 
 template <typename F, typename... ArgTypes>
 using undecayed_common_result_of =
-	undecayed_common_type<typename result_of<F, ArgTypes>::type...>;
+	undecayed_common_type<result_of_t<F, ArgTypes>...>;
 
 template <typename F, typename... ArgTypes>
 using undecayed_common_result_of_t =

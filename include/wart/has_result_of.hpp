@@ -13,7 +13,7 @@ template <typename F, typename... ArgTypes>
 class has_result_of {
 
 	template <typename A>
-	static constexpr bool check(typename std::result_of<A(ArgTypes...)>::type*) {
+	static constexpr bool check(decltype(declval<A>()(declval<ArgTypes>()...))*) {
 		return true;
 	}
 
