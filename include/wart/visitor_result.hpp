@@ -4,7 +4,7 @@
 #include "all.hpp"
 #include "has_result_of.hpp"
 #include "has_result_type.hpp"
-#include "undecayed_common_result_of.hpp"
+#include "common_result_of.hpp"
 
 #include <type_traits>
 
@@ -22,7 +22,7 @@ struct visitor_result<true, HasResultOf, F, T...> {
 
 template <typename F, typename... T>
 struct visitor_result<false, true, F, T...> {
-	using type = undecayed_common_result_of_t<F, T...>;
+	using type = common_result_of_t<F, T...>;
 };
 
 template <typename F, typename... T>
@@ -33,7 +33,7 @@ struct visitor_result<false, false, F, T...> {};
 template <typename F, typename... T>
 struct visitor_result: detail::visitor_result::visitor_result<
 	has_result_type<typename std::remove_reference<F>::type>::value,
-	all<has_result_of<F, T>::value...>::value,
+	all<has_result_of<F(T)>::value...>::value,
 	F,
 	T...
 	> {};

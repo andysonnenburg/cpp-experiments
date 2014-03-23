@@ -9,29 +9,30 @@ namespace wart {
 
 namespace detail { namespace has_result_of {
 
-template <typename F, typename... ArgTypes>
-class has_result_of {
+template <typename T>
+struct has_result_of {
 
-	template <typename A>
-	static constexpr bool check(decltype(declval<A>()(declval<ArgTypes>()...))*) {
+private:
+	template <typename U>
+	static constexpr bool test(result_of_t<U>*) {
 		return true;
 	}
 
-	template <typename>
-	static constexpr bool check(...) {
+	template <typename...>
+	static constexpr bool test(...) {
 		return false;
 	}
 
 public:
-	static constexpr bool value = check<F>(nullptr);
+	static constexpr bool value = test<T>(nullptr);
 };
 
 }}
 
-template <typename F, typename... ArgTypes>
+template <typename T>
 struct has_result_of: std::integral_constant<
 	bool,
-	detail::has_result_of::has_result_of<F, ArgTypes...>::value
+	detail::has_result_of::has_result_of<T>::value
 	>::type {};
 
 }
