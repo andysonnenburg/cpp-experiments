@@ -200,7 +200,8 @@ public:
 	        >::type* = nullptr):
 		tag_{rhs.accept(copy_construct_and_tag<T...>{union_})} {}
 
-	variant(variant&& rhs):
+	variant(variant&& rhs)
+	noexcept(all<noexcept(T(std::declval<T&&>()))...>::value):
 		tag_{rhs.tag_} {
 		std::move(rhs).accept(move_construct<T...>{union_});
 	}
@@ -265,7 +266,8 @@ public:
 	}
 
 	template <typename F>
-	visitor_result_t<F&&, T&...> accept(F&& f) & {
+	visitor_result_t<F&&, T&...> accept(F&& f) &
+		noexcept(all<noexcept(std::declval<F&&>()(std::declval<T&>()))...>::value) {
 		using result_type = visitor_result_t<F&&, T&...>;
 		using call = result_type (*)(F&& f, union_t<uninitialized, T...>&);
 		static call calls[] {
@@ -275,7 +277,8 @@ public:
 	}
 
 	template <typename F>
-	visitor_result_t<F&&, T const&...> accept(F&& f) const& {
+	visitor_result_t<F&&, T const&...> accept(F&& f) const&
+		noexcept(all<noexcept(std::declval<F&&>()(std::declval<T const&>()))...>::value) {
 		using result_type = visitor_result_t<F&&, T const&...>;
 		using call = result_type (*)(F&& f, union_t<uninitialized, T...> const&);
 		static call calls[] {
@@ -285,7 +288,8 @@ public:
 	}
 
 	template <typename F>
-	visitor_result_t<F&&, T&&...> accept(F&& f) && {
+	visitor_result_t<F&&, T&&...> accept(F&& f) &&
+		noexcept(all<noexcept(std::declval<F&&>()(std::declval<T&&>()))...>::value) {
 		using result_type = visitor_result_t<F&&, T&&...>;
 		using call = result_type (*)(F&& f, union_t<uninitialized, T...>&&);
 		static call calls[] {

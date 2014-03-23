@@ -13,7 +13,7 @@ namespace wart {
 namespace detail { namespace visitor_result {
 
 template <bool HasResultType, bool HasResultOf, typename F, typename... T>
-struct visitor_result;
+struct visitor_result {};
 
 template <bool HasResultOf, typename F, typename... T>
 struct visitor_result<true, HasResultOf, F, T...> {
@@ -24,9 +24,6 @@ template <typename F, typename... T>
 struct visitor_result<false, true, F, T...> {
 	using type = common_result_of_t<F, T...>;
 };
-
-template <typename F, typename... T>
-struct visitor_result<false, false, F, T...> {};
 
 }}
 
